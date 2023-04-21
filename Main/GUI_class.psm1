@@ -7,6 +7,8 @@ class GUI_Config {
     static [string] $RunButton = "Prepare Report"
     static [int] $FormSize_X = 480
     static [int] $FormSize_Y = 150
+
+    
 }
 class GUI {
     # Variables
