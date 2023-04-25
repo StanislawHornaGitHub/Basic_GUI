@@ -1,4 +1,6 @@
-
+# Put all components Labels boxes etc into hashtable and Next
+# Make a hashtable a variable in the class, to be able to prepare different GUIs with one class
+#Divide hashtables into 2 types: always visible and advanced
 Add-Type -AssemblyName System.Windows.Forms
 [System.Windows.Forms.Application]::EnableVisualStyles()
 enum ComponentType {
