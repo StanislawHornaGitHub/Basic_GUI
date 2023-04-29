@@ -1,6 +1,3 @@
-# Put all components Labels boxes etc into hashtable and Next
-# Make a hashtable a variable in the class, to be able to prepare different GUIs with one class
-#Divide hashtables into 2 types: always visible and advanced
 Add-Type -AssemblyName System.Windows.Forms
 [System.Windows.Forms.Application]::EnableVisualStyles()
 enum ComponentType {
@@ -86,11 +83,11 @@ class GUI {
         #------------------------- TextBoxes Section ------------------------#
         ######################################################################
 
-        $this.NewBox([ComponentType]"Small_GUI", "Portal", 140, 30, 300, 20, {$THIS_FORM.PortalChange()})
+        $this.NewBox([ComponentType]"Small_GUI", "Portal", 140, 30, 300, 20, { $THIS_FORM.PortalChange() })
 
-        $this.NewBox([ComponentType]"Small_GUI", "Login", 140, 60, 300, 20, {$THIS_FORM.LoginChange()})
+        $this.NewBox([ComponentType]"Small_GUI", "Login", 140, 60, 300, 20, { $THIS_FORM.LoginChange() })
 
-        $this.NewBox([ComponentType]"Small_GUI", "Password", 140, 90, 300, 20, {$THIS_FORM.PasswordChange()})
+        $this.NewBox([ComponentType]"Small_GUI", "Password", 140, 90, 300, 20, { $THIS_FORM.PasswordChange() })
         $this.GUI_Components.'Small_GUI'.'Box'.'Password'.passwordchar = "*"
 
         ######################################################################
@@ -193,20 +190,15 @@ class GUI {
         }
     }
     SmallGUI() {
-        $this.Form.ClientSize = New-Object System.Drawing.Point([GUI_Config]::Small_FormSize_X, [GUI_Config]::Small_FormSize_Y)
         foreach ($Object in $this.GUI_Components.'Big_GUI'.Keys) {
             foreach ($Component in $this.GUI_Components.'Big_GUI'.$Object.Keys) {
                 $this.GUI_Components.'Big_GUI'.$Object.$Component.Visible = $false
             }
         }
+        $this.Form.ClientSize = New-Object System.Drawing.Point([GUI_Config]::Small_FormSize_X, [GUI_Config]::Small_FormSize_Y)
     }
     SmallGUIwithConnectionStatus() {
-        foreach ($Object in $this.GUI_Components.'Big_GUI'.Keys) {
-            foreach ($Component in $this.GUI_Components.'Big_GUI'.$Object.Keys) {
-                $this.GUI_Components.'Big_GUI'.$Object.$Component.Visible = $false
-            }
-        }
-        $this.Form.ClientSize = New-Object System.Drawing.Point([GUI_Config]::Small_FormSize_X, [GUI_Config]::Small_FormSize_Y)
+        $this.SmallGUI()
         $this.GUI_Components.'Big_GUI'.'Label'.'ConnectionStatus'.visible = $true
         $this.GUI_Components.'Big_GUI'.'Label'.'ConnectionStatusDetails'.text = "Not connected "
         $this.GUI_Components.'Big_GUI'.'Label'.'ConnectionStatusDetails'.ForeColor = 'red'
@@ -215,12 +207,7 @@ class GUI {
         $this.GUI_Components.'Big_GUI'.'Label'.'ConnectionStatusDetails'.visible = $true
     }
     SmallGUIwithConnectionStatus([String]$ErrorMessage) {
-        foreach ($Object in $this.GUI_Components.'Big_GUI'.Keys) {
-            foreach ($Component in $this.GUI_Components.'Big_GUI'.$Object.Keys) {
-                $this.GUI_Components.'Big_GUI'.$Object.$Component.Visible = $false
-            }
-        }
-        $this.Form.ClientSize = New-Object System.Drawing.Point([GUI_Config]::Small_FormSize_X, [GUI_Config]::Small_FormSize_Y)
+        $this.SmallGUI()
         $this.GUI_Components.'Big_GUI'.'Label'.'ConnectionStatus'.visible = $true
         $this.GUI_Components.'Big_GUI'.'Label'.'ConnectionStatusDetails'.text = $ErrorMessage
         $this.GUI_Components.'Big_GUI'.'Label'.'ConnectionStatusDetails'.ForeColor = 'red'
@@ -234,13 +221,57 @@ class GUI {
         $this.GUI_Components.'Big_GUI'.'Label'.'ConnectionStatusDetails'.ForeColor = 'green'
         $this.GUI_Components.'Big_GUI'.'Label'.'ConnectionStatusDetails'.Font = `
             New-Object System.Drawing.Font('Microsoft Sans Serif', 12, [System.Drawing.FontStyle]::Bold)
+        $this.GUI_Components.'Big_GUI'.'Label'."RunStatus".ForeColor = 'black'
+        $this.GUI_Components.'Big_GUI'.'Label'."RunStatus".text = ""
         foreach ($Object in $this.GUI_Components.'Big_GUI'.Keys) {
             foreach ($Component in $this.GUI_Components.'Big_GUI'.$Object.Keys) {
                 $this.GUI_Components.'Big_GUI'.$Object.$Component.Visible = $true
             }
         }
     }
-    PortalChange(){
+    LockInputs() {
+        $Inputs = @('Box', 'Button', 'Checkbox')
+        foreach ($Object in $Inputs) {
+            foreach ($Type in $this.GUI_Components.Keys) {
+                foreach ($Component in $this.GUI_Components.$Type.$Object.Keys) {
+                    $this.GUI_Components.$Type.$Object.$Component.enabled = $false
+                }
+            }
+        }
+    }
+    UnlockInputs() {
+        $Inputs = @('Box', 'Button', 'Checkbox')
+        foreach ($Object in $Inputs) {
+            foreach ($Type in $this.GUI_Components.Keys) {
+                foreach ($Component in $this.GUI_Components.$Type.$Object.Keys) {
+                    $this.GUI_Components.$Type.$Object.$Component.enabled = $true
+                }
+            }
+        }
+    }
+    StartProcessing(){
+        $this.LockInputs()
+        $this.GUI_Components.'Big_GUI'.'Label'."RunStatus".text = ""
+        $this.GUI_Components.'Big_GUI'.'Label'."RunStatus".ForeColor = 'orange'
+            $this.GUI_Components.'Big_GUI'.'Label'."RunStatus".Font = `
+                New-Object System.Drawing.Font('Microsoft Sans Serif', 10, [System.Drawing.FontStyle]::Bold)
+    }
+    ShowExecutionStatus([hashtable]$Result) {
+        if ($Result.'ErrorMessage' -eq "Success") {
+            $this.GUI_Components.'Big_GUI'.'Label'."RunStatus".text = "Success "
+            $this.GUI_Components.'Big_GUI'.'Label'."RunStatus".ForeColor = 'green'
+            $this.GUI_Components.'Big_GUI'.'Label'."RunStatus".Font = `
+                New-Object System.Drawing.Font('Microsoft Sans Serif', 12, [System.Drawing.FontStyle]::Bold)
+        }
+        else {
+            $this.GUI_Components.'Big_GUI'.'Label'."RunStatus".text = ($Result.'ErrorMessage' + " ")
+            $this.GUI_Components.'Big_GUI'.'Label'."RunStatus".ForeColor = 'red'
+            $this.GUI_Components.'Big_GUI'.'Label'."RunStatus".Font = `
+                New-Object System.Drawing.Font('Microsoft Sans Serif', 12, [System.Drawing.FontStyle]::Bold)
+        }
+        $this.UnlockInputs()
+    }
+    PortalChange() {
         if ($this.GUI_Components.'Big_GUI'.'Label'.'ConnectionStatusDetails'.text -notlike "Connected*") {
             return
         }
@@ -255,7 +286,7 @@ class GUI {
         $this.SmallGUIwithConnectionStatus()
         $this.GUI_Components.'Small_GUI'.'Box'.'Password'.text = ""
     }
-    PasswordChange(){
+    PasswordChange() {
         if ($this.GUI_Components.'Big_GUI'.'Label'.'ConnectionStatusDetails'.text -notlike "Connected*") {
             return
         }
@@ -269,26 +300,28 @@ class GUI {
             $this.GUI_Components.'Small_GUI'.'Box'.'Password'.passwordchar = "*"
         }
     }
-    InvokeConnection(){
-        if($this.GUI_Components.'Small_GUI'.'Box'.'Login'.text.length -lt 1 -or
-        $this.GUI_Components.'Small_GUI'.'Box'.'Password'.text.length -lt 1){
+    InvokeConnection() {
+        if ($this.GUI_Components.'Small_GUI'.'Box'.'Login'.text.length -lt 1 -or
+            $this.GUI_Components.'Small_GUI'.'Box'.'Password'.text.length -lt 1) {
             return
         }
         $Result = Invoke-Connection -GUI_Components $this.GUI_Components
-        if($Result.'Connected'){
+        if ($Result.'Connected' -eq $true) {
             $this.BigGUI()
             $this.Engines = $Result.'Engines'
-            $this.Engines
-        }else {
+        }
+        else {
             $this.SmallGUIwithConnectionStatus(($Result.'ErrorMessage' + " "))
             $this.Engines = $null
         }
     }
-    InvokeRun(){
-        if($this.GUI_Components.'Small_GUI'.'Box'.'Login'.text.length -lt 1 -or
-        $this.GUI_Components.'Small_GUI'.'Box'.'Password'.text.length -lt 1){
+    InvokeRun() {
+        if ($this.GUI_Components.'Small_GUI'.'Box'.'Login'.text.length -lt 1 -or
+            $this.GUI_Components.'Small_GUI'.'Box'.'Password'.text.length -lt 1) {
             return
         }
-        Invoke-Run -GUI_Components $this.GUI_Components -Engines $this.Engines
+        $this.StartProcessing()
+        $Result = Invoke-Run -GUI_Components $this.GUI_Components -Engines $this.Engines
+        $this.ShowExecutionStatus($Result)
     }
 }
