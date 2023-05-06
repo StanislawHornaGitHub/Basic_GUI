@@ -1,39 +1,30 @@
-Add-Type -AssemblyName System.Windows.Forms
-[System.Windows.Forms.Application]::EnableVisualStyles()
-enum ComponentType {
-    Small_GUI = 0
-    Big_GUI = 1
-}
-class GUI_Config {
-    static [string] $ProgramName = "Powershell GUI"
-    static [string] $ProgramTitle = "Script for report automation"
-    static [string] $RunButton = "Prepare Report"
-    static [int] $Big_FormSize_X = 480
-    static [int] $Big_FormSize_Y = 150
-    static [int] $Small_FormSize_X = 480
-    static [int] $Small_FormSize_Y = 125
-}
+using module './Main/GUI_config.psm1'
+using module './Main/GUI_EnvironmentSelection.psm1'
 class GUI {
     # Variables
+    $Environment
     $Engines
     # GUI
     $Form
     $GUI_Components = @{
         'Small_GUI' = @{
-            'Label'    = @{}
-            'Box'      = @{}
-            'Checkbox' = @{}
-            'Button'   = @{}
+            'Label'       = @{}
+            'Box'         = @{}
+            'Checkbox'    = @{}
+            'Button'      = @{}
+            'ProgressBar' = @{}
         }
         'Big_GUI'   = @{
-            'Label'    = @{}
-            'Box'      = @{}
-            'Checkbox' = @{}
-            'Button'   = @{}
+            'Label'       = @{}
+            'Box'         = @{}
+            'Checkbox'    = @{}
+            'Button'      = @{}
+            'ProgressBar' = @{}
         }
     }
-
     GUI() {
+        [GUI_Config]::StartInstance()
+        [GUI_Config]::WriteLog("GUI constructor Invoked",([GUI_Config]::GUI_LogName))
         $THIS_FORM = $this
         ######################################################################
         #----------------------- GUI Forms Definition -----------------------#
@@ -46,14 +37,16 @@ class GUI {
         $this.Form.TopMost = $true
         # Handling if opened via Powershell ISE
         try {
-            $p = (Get-Process powershell | Sort-Object -Property CPU -Descending | Select-Object -First 1).Path
-            $this.Form.Icon = [System.Drawing.Icon]::ExtractAssociatedIcon($p)
+            $imgIcon = New-Object system.drawing.icon (([GUI_Config]::IconPath))
+            $this.Form.Icon = $imgIcon
+            #$p = (Get-Process powershell | Sort-Object -Property CPU -Descending | Select-Object -First 1).Path
+            #$this.Form.Icon = [System.Drawing.Icon]::ExtractAssociatedIcon($p)
         }
         catch {
             $p = (Get-Process explorer | Sort-Object -Property CPU -Descending | Select-Object -First 1).Path
             $this.Form.Icon = [System.Drawing.Icon]::ExtractAssociatedIcon($p)
         }
-
+        $this.Form.Add_FormClosing({ [GUI_Config]::CloseInstance() })
         ######################################################################
         #-------------------------- Labels Section --------------------------#
         ######################################################################
@@ -96,10 +89,12 @@ class GUI {
 
         $this.NewButton([ComponentType]"Small_GUI", "Connect", "Connect to Portal", 20, 130, 100, 30, { $THIS_FORM.InvokeConnection() })
 
-        $this.NewButton([ComponentType]"Big_GUI", "Run", "Run", 20, 170, 120, 50, { $THIS_FORM.InvokeRun() })
+        $this.NewButton([ComponentType]"Big_GUI", "Run", [GUI_Config]::RunButton, 20, 170, 120, 50, { $THIS_FORM.InvokeRun() })
         $this.GUI_Components.'Big_GUI'.'Button'.'Run'.ForeColor = 'green'
         $this.GUI_Components.'Big_GUI'.'Button'.'Run'.Font = New-Object System.Drawing.Font('Microsoft Sans Serif', 10, [System.Drawing.FontStyle]::Bold)
 
+        $this.NewProcessingBar([ComponentType]"Big_GUI", 'Processing', 150, 202, 300, 15, 40)
+        
         $this.SmallGUI()
         $this.Form.ShowDialog()
     }
@@ -189,15 +184,40 @@ class GUI {
             $this.Form.Controls.Add($this.GUI_Components.$TypeToHash.'Button'.$Name)
         }
     }
+    NewProcessingBar(
+        [ComponentType]$Type,
+        [String]$Name,
+        [Int]$Location_X,
+        [Int]$Location_Y,
+        [Int]$Size_X,
+        [Int]$Size_Y,
+        [Int]$Speed
+    ) {
+        $TypeToHash = $Type.ToString()
+        if (-not ($this.GUI_Components).$TypeToHash.'Button'.ContainsKey($Name)) {
+            $ProgressBar = New-Object System.Windows.Forms.ProgressBar
+            $ProgressBar.Location = New-Object System.Drawing.Point($Location_X, $Location_Y)
+            $ProgressBar.Size = New-Object System.Drawing.Size($Size_X, $Size_Y)
+            $ProgressBar.Style = "Marquee"
+            $ProgressBar.MarqueeAnimationSpeed = $Speed
+            $ProgressBar.Visible = $false
+            $this.GUI_Components.$TypeToHash.'ProgressBar'.Add($Name, $ProgressBar)
+            $this.Form.Controls.Add($this.GUI_Components.$TypeToHash.'ProgressBar'.$Name)
+        }
+    }
     SmallGUI() {
+        [GUI_Config]::WriteLog("SmallGUI method",([GUI_Config]::GUI_LogName))
+        $this.GUI_Components.'Small_GUI'.'Checkbox'.'ShowPassword'.visible = $true
         foreach ($Object in $this.GUI_Components.'Big_GUI'.Keys) {
             foreach ($Component in $this.GUI_Components.'Big_GUI'.$Object.Keys) {
                 $this.GUI_Components.'Big_GUI'.$Object.$Component.Visible = $false
             }
         }
         $this.Form.ClientSize = New-Object System.Drawing.Point([GUI_Config]::Small_FormSize_X, [GUI_Config]::Small_FormSize_Y)
+        $this.Form.AcceptButton = $this.GUI_Components.'Small_GUI'.'Button'.'Connect'
     }
     SmallGUIwithConnectionStatus() {
+        [GUI_Config]::WriteLog("SmallGUIwithConnectionStatus method",([GUI_Config]::GUI_LogName))
         $this.SmallGUI()
         $this.GUI_Components.'Big_GUI'.'Label'.'ConnectionStatus'.visible = $true
         $this.GUI_Components.'Big_GUI'.'Label'.'ConnectionStatusDetails'.text = "Not connected "
@@ -207,6 +227,7 @@ class GUI {
         $this.GUI_Components.'Big_GUI'.'Label'.'ConnectionStatusDetails'.visible = $true
     }
     SmallGUIwithConnectionStatus([String]$ErrorMessage) {
+        [GUI_Config]::WriteLog("SmallGUIwithConnectionStatus([String]$ErrorMessage) method",([GUI_Config]::GUI_LogName))
         $this.SmallGUI()
         $this.GUI_Components.'Big_GUI'.'Label'.'ConnectionStatus'.visible = $true
         $this.GUI_Components.'Big_GUI'.'Label'.'ConnectionStatusDetails'.text = $ErrorMessage
@@ -216,6 +237,7 @@ class GUI {
         $this.GUI_Components.'Big_GUI'.'Label'.'ConnectionStatusDetails'.visible = $true
     }
     BigGUI() {
+        [GUI_Config]::WriteLog("BigGUI method",([GUI_Config]::GUI_LogName))
         $this.Form.ClientSize = New-Object System.Drawing.Point([GUI_Config]::Big_FormSize_X, [GUI_Config]::Big_FormSize_Y)
         $this.GUI_Components.'Big_GUI'.'Label'.'ConnectionStatusDetails'.text = "Connected "
         $this.GUI_Components.'Big_GUI'.'Label'.'ConnectionStatusDetails'.ForeColor = 'green'
@@ -223,13 +245,21 @@ class GUI {
             New-Object System.Drawing.Font('Microsoft Sans Serif', 12, [System.Drawing.FontStyle]::Bold)
         $this.GUI_Components.'Big_GUI'.'Label'."RunStatus".ForeColor = 'black'
         $this.GUI_Components.'Big_GUI'.'Label'."RunStatus".text = ""
+        $this.GUI_Components.'Small_GUI'.'Checkbox'.'ShowPassword'.checked = $false
+        $this.ShowPassword()
+        $this.GUI_Components.'Small_GUI'.'Checkbox'.'ShowPassword'.visible = $false
         foreach ($Object in $this.GUI_Components.'Big_GUI'.Keys) {
             foreach ($Component in $this.GUI_Components.'Big_GUI'.$Object.Keys) {
-                $this.GUI_Components.'Big_GUI'.$Object.$Component.Visible = $true
+                if ($Object -ne "ProgressBar") {
+                    $this.GUI_Components.'Big_GUI'.$Object.$Component.Visible = $true
+                }
+                
             }
         }
+        $this.Form.AcceptButton = $this.GUI_Components.'Big_GUI'.'Button'.'Run'
     }
     LockInputs() {
+        [GUI_Config]::WriteLog("LockInputs method",([GUI_Config]::GUI_LogName))
         $Inputs = @('Box', 'Button', 'Checkbox')
         foreach ($Object in $Inputs) {
             foreach ($Type in $this.GUI_Components.Keys) {
@@ -240,6 +270,7 @@ class GUI {
         }
     }
     UnlockInputs() {
+        [GUI_Config]::WriteLog("UnlockInputs method",([GUI_Config]::GUI_LogName))
         $Inputs = @('Box', 'Button', 'Checkbox')
         foreach ($Object in $Inputs) {
             foreach ($Type in $this.GUI_Components.Keys) {
@@ -249,32 +280,61 @@ class GUI {
             }
         }
     }
-    StartProcessing(){
+    StartProcessing() {
+        [GUI_Config]::WriteLog("StartProcessing method",([GUI_Config]::GUI_LogName))
         $this.LockInputs()
         $this.GUI_Components.'Big_GUI'.'Label'."RunStatus".text = ""
         $this.GUI_Components.'Big_GUI'.'Label'."RunStatus".ForeColor = 'orange'
-            $this.GUI_Components.'Big_GUI'.'Label'."RunStatus".Font = `
-                New-Object System.Drawing.Font('Microsoft Sans Serif', 10, [System.Drawing.FontStyle]::Bold)
+        $this.GUI_Components.'Big_GUI'.'Label'."RunStatus".Font = `
+            New-Object System.Drawing.Font('Microsoft Sans Serif', 10, [System.Drawing.FontStyle]::Bold)
+        $this.GUI_Components.'Big_GUI'.'ProgressBar'.'Processing'.visible = $true
     }
-    ShowExecutionStatus([hashtable]$Result) {
-        if ($Result.'ErrorMessage' -eq "Success") {
-            $this.GUI_Components.'Big_GUI'.'Label'."RunStatus".text = "Success "
-            $this.GUI_Components.'Big_GUI'.'Label'."RunStatus".ForeColor = 'green'
-            $this.GUI_Components.'Big_GUI'.'Label'."RunStatus".Font = `
-                New-Object System.Drawing.Font('Microsoft Sans Serif', 12, [System.Drawing.FontStyle]::Bold)
-        }
-        else {
-            $this.GUI_Components.'Big_GUI'.'Label'."RunStatus".text = ($Result.'ErrorMessage' + " ")
-            $this.GUI_Components.'Big_GUI'.'Label'."RunStatus".ForeColor = 'red'
-            $this.GUI_Components.'Big_GUI'.'Label'."RunStatus".Font = `
-                New-Object System.Drawing.Font('Microsoft Sans Serif', 12, [System.Drawing.FontStyle]::Bold)
+    ShowExecutionStatus() {
+        [GUI_Config]::WriteLog("ShowExecutionStatus method",([GUI_Config]::GUI_LogName))
+        $this.GUI_Components.'Big_GUI'.'ProgressBar'.'Processing'.visible = $false
+        $Statuses = Get-ChildItem -Path $([GUI_Config]::StatusPath) | Where-Object { $_.Name -like ([GUI_Config]::FinalStatusExtension) }
+        if ($Statuses.Count -ge 1) { 
+            $Current = $Statuses | Sort-Object { $_.CreationTimeUtc } -Descending | Select-Object -First 1
+            $CurrentMessage = $Current.Name.Split(".")[0]
+            try {
+                Remove-Item -Path $Current.FullName -Force -Confirm:$false -ErrorAction Stop
+            }
+            catch {}
+            if ($CurrentMessage -eq "Success") {
+                $this.GUI_Components.'Big_GUI'.'Label'."RunStatus".text = ($CurrentMessage + " ")
+                $this.GUI_Components.'Big_GUI'.'Label'."RunStatus".ForeColor = 'green'
+                $this.GUI_Components.'Big_GUI'.'Label'."RunStatus".Font = `
+                    New-Object System.Drawing.Font('Microsoft Sans Serif', 12, [System.Drawing.FontStyle]::Bold)
+            }
+            else {
+                $this.GUI_Components.'Big_GUI'.'Label'."RunStatus".text = ($CurrentMessage + " ")
+                $this.GUI_Components.'Big_GUI'.'Label'."RunStatus".ForeColor = 'red'
+                $this.GUI_Components.'Big_GUI'.'Label'."RunStatus".Font = `
+                    New-Object System.Drawing.Font('Microsoft Sans Serif', 12, [System.Drawing.FontStyle]::Bold)
+            }
+            [GUI_Config]::WriteLog("RUN execution status: $CurrentMessage",([GUI_Config]::GUI_LogName))
+            
         }
         $this.UnlockInputs()
+    }
+    WriteStatus() {
+        $Statuses = Get-ChildItem -Path $([GUI_Config]::StatusPath) | Where-Object { $_.Name -like ([GUI_Config]::ProcessingStatusExtension) }
+        if ($Statuses.Count -ge 1) { 
+            $Current = $Statuses | Sort-Object { $_.CreationTimeUtc } -Descending | Select-Object -First 1
+            $CurrentMessage = $Current.Name.Split(".")[0]
+            try {
+                Remove-Item -Path $Current.FullName -Force -Confirm:$false -ErrorAction Stop
+            }
+            catch {}
+            $this.GUI_Components.'Big_GUI'.'Label'.'RunStatus'.text = $CurrentMessage
+            [GUI_Config]::WriteLog("WriteStatus method - Status: $CurrentMessage",([GUI_Config]::GUI_LogName))
+        }
     }
     PortalChange() {
         if ($this.GUI_Components.'Big_GUI'.'Label'.'ConnectionStatusDetails'.text -notlike "Connected*") {
             return
         }
+        [GUI_Config]::GenerateLog("PortalChange method") | Out-File -FilePath "$([GUI_Config]::LogsPath)/$([GUI_Config]::GUI_LogName)" -Append
         $this.SmallGUIwithConnectionStatus()
         $this.GUI_Components.'Small_GUI'.'Box'.'Password'.text = ""
         $this.GUI_Components.'Small_GUI'.'Box'.'Login'.text = ""
@@ -283,6 +343,7 @@ class GUI {
         if ($this.GUI_Components.'Big_GUI'.'Label'.'ConnectionStatusDetails'.text -notlike "Connected*") {
             return
         }
+        [GUI_Config]::GenerateLog("LoginChange method") | Out-File -FilePath "$([GUI_Config]::LogsPath)/$([GUI_Config]::GUI_LogName)" -Append
         $this.SmallGUIwithConnectionStatus()
         $this.GUI_Components.'Small_GUI'.'Box'.'Password'.text = ""
     }
@@ -290,9 +351,11 @@ class GUI {
         if ($this.GUI_Components.'Big_GUI'.'Label'.'ConnectionStatusDetails'.text -notlike "Connected*") {
             return
         }
+        [GUI_Config]::GenerateLog("PasswordChange method") | Out-File -FilePath "$([GUI_Config]::LogsPath)/$([GUI_Config]::GUI_LogName)" -Append
         $this.SmallGUIwithConnectionStatus()
     }
     ShowPassword() {
+        [GUI_Config]::GenerateLog("ShowPassword method") | Out-File -FilePath "$([GUI_Config]::LogsPath)/$([GUI_Config]::GUI_LogName)" -Append
         if ($this.GUI_Components.'Small_GUI'.'Checkbox'.'ShowPassword'.checked) {
             $this.GUI_Components.'Small_GUI'.'Box'.'Password'.passwordchar = $null
         }
@@ -300,28 +363,77 @@ class GUI {
             $this.GUI_Components.'Small_GUI'.'Box'.'Password'.passwordchar = "*"
         }
     }
-    InvokeConnection() {
-        if ($this.GUI_Components.'Small_GUI'.'Box'.'Login'.text.length -lt 1 -or
+    [bool]CheckInputs() {
+        [GUI_Config]::GenerateLog("CheckInputs method") | Out-File -FilePath "$([GUI_Config]::LogsPath)/$([GUI_Config]::GUI_LogName)" -Append
+        if ($this.GUI_Components.'Small_GUI'.'Box'.'Portal'.text.length -lt 1 -or
+            $this.GUI_Components.'Small_GUI'.'Box'.'Login'.text.length -lt 1 -or
             $this.GUI_Components.'Small_GUI'.'Box'.'Password'.text.length -lt 1) {
+            return $true
+        }
+        return $false
+    }
+    InvokeConnection() {
+        $THIS_FORM = $this
+        [GUI_Config]::WriteLog("InvokeConnection method",([GUI_Config]::GUI_LogName))
+        if ($this.CheckInputs()) {
             return
         }
-        $Result = Invoke-Connection -GUI_Components $this.GUI_Components
+        $Result = Invoke-Connection -GUI_Components $this.GUI_Components -LogsPath ([GUI_Config]::LogsPath) -LogName ([GUI_Config]::Connection_LogName)
         if ($Result.'Connected' -eq $true) {
+            [GUI_Config]::WriteLog("Connect execution status: Connected",([GUI_Config]::GUI_LogName))
             $this.BigGUI()
             $this.Engines = $Result.'Engines'
+            [GUI_Environment]::GUI_EnvironmentSelection($THIS_FORM.Engines, $THIS_FORM.GUI_Components.'Small_GUI'.'Box'.'Portal'.text)
         }
         else {
+            [GUI_Config]::WriteLog("Connect execution status: $($Result.'ErrorMessage')",([GUI_Config]::GUI_LogName))
             $this.SmallGUIwithConnectionStatus(($Result.'ErrorMessage' + " "))
             $this.Engines = $null
         }
     }
     InvokeRun() {
-        if ($this.GUI_Components.'Small_GUI'.'Box'.'Login'.text.length -lt 1 -or
-            $this.GUI_Components.'Small_GUI'.'Box'.'Password'.text.length -lt 1) {
+        [GUI_Config]::WriteLog("InvokeRun method",([GUI_Config]::GUI_LogName))
+        if ($this.CheckInputs()) {
             return
         }
         $this.StartProcessing()
-        $Result = Invoke-Run -GUI_Components $this.GUI_Components -Engines $this.Engines
-        $this.ShowExecutionStatus($Result)
+        Start-Job -Name 'Run' -InitializationScript { Import-Module ./Main/GUI_Functions.psm1 } -ScriptBlock {
+            param(
+                $GUI_Components,
+                $Engines,
+                $Location,
+                $StatusPath,
+                $ProcessingStatusExtension,
+                $FinalStatusExtension,
+                $LogsPath,
+                $Execution_LogName
+            )
+            Set-Location $Location
+            Invoke-Run -GUI_Components $GUI_Components -Engines $Engines `
+                -LogsPath $LogsPath `
+                -LogName $Execution_LogName `
+                -ProcessingStatusExtension $ProcessingStatusExtension `
+                -FinalStatusExtension $FinalStatusExtension
+        } -ArgumentList $this.GUI_Components, $this.Engines, 
+        (Get-Location).Path, 
+        ([GUI_Config]::StatusPath),
+        ([GUI_Config]::ProcessingStatusExtension),
+        ([GUI_Config]::FinalStatusExtension), 
+        ([GUI_Config]::LogsPath),
+        ([GUI_Config]::Execution_LogName)
+
+        while ((Get-Job -Name 'Run').State -eq 'Running') {
+            [System.Windows.Forms.Application]::DoEvents()
+            $this.WriteStatus()
+        }
+        try {
+            Receive-Job -Name 'Run' -ErrorAction Stop | Out-File -FilePath "$([GUI_Config]::LogsPath)/Success-$([GUI_Config]::RunRawLogName)"
+        }
+        catch {
+            $_ |  Out-File -FilePath "$([GUI_Config]::LogsPath)/Failure-$([GUI_Config]::RunRawLogName)"
+        }
+        
+        Get-Job | Remove-Job
+        $this.ShowExecutionStatus()
     }
 }
