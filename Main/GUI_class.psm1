@@ -406,33 +406,32 @@ class GUI {
                 $ProcessingStatusExtension,
                 $FinalStatusExtension,
                 $LogsPath,
-                $Execution_LogName
+                $Execution_LogName,
+                $ExecutionTimersName,
+                $RunRawLogName
             )
             Set-Location $Location
             Invoke-Run -GUI_Components $GUI_Components -Engines $Engines `
                 -LogsPath $LogsPath `
                 -LogName $Execution_LogName `
                 -ProcessingStatusExtension $ProcessingStatusExtension `
-                -FinalStatusExtension $FinalStatusExtension
+                -FinalStatusExtension $FinalStatusExtension `
+                -ExecutionTimersName $ExecutionTimersName `
+                -RunRawLogName $RunRawLogName
         } -ArgumentList $this.GUI_Components, $this.Engines, 
         (Get-Location).Path, 
         ([GUI_Config]::StatusPath),
         ([GUI_Config]::ProcessingStatusExtension),
         ([GUI_Config]::FinalStatusExtension), 
         ([GUI_Config]::LogsPath),
-        ([GUI_Config]::Execution_LogName)
+        ([GUI_Config]::Execution_LogName),
+        ([GUI_Config]::ExecutionTimersName),
+        ([GUI_Config]::RunErrors)
 
         while ((Get-Job -Name 'Run').State -eq 'Running') {
             [System.Windows.Forms.Application]::DoEvents()
             $this.WriteStatus()
         }
-        try {
-            Receive-Job -Name 'Run' -ErrorAction Stop | Out-File -FilePath "$([GUI_Config]::LogsPath)/Success-$([GUI_Config]::RunRawLogName)"
-        }
-        catch {
-            $_ |  Out-File -FilePath "$([GUI_Config]::LogsPath)/Failure-$([GUI_Config]::RunRawLogName)"
-        }
-        
         Get-Job | Remove-Job
         $this.ShowExecutionStatus()
     }

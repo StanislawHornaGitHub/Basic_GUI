@@ -3,10 +3,12 @@ enum ComponentType {
     Big_GUI = 1
 }
 class GUI_Config {
-    # Form Variables
+    # Form Variables (Basic)
     static [string] $ProgramName = "Powershell GUI"
     static [string] $ProgramTitle = "Script for report automation (test change)"
     static [string] $RunButton = "Prepare Report"
+
+    # Form Variables (Advanced)
     static [int] $Big_FormSize_X = 480
     static [int] $Big_FormSize_Y = 150
     static [int] $Small_FormSize_X = 480
@@ -15,6 +17,7 @@ class GUI_Config {
 
     # Processing Variables
     static [string] $LockFile = "$((Get-Location).Path)\Main\$([GUI_Config]::ProgramName).LOCK"
+    static [int] $LockPeriodInMinutes = 40
     static [string] $ResultFolder = "$((Get-Location).Path)/Output"
 
     # Logging Variables
@@ -27,7 +30,8 @@ class GUI_Config {
     static [string] $GUI_LogName = "GUI.log"
     static [string] $Connection_LogName = "Connection.log"
     static [string] $Execution_LogName = "Execution.log"
-    static [string] $RunRawLogName = "RUN-raw.log"
+    static [string] $RunErrors = "RUN-Errors.log"
+    static [string] $ExecutionTimersName = "ExecutionTimers.time"
 
     static FolderStructureCheck() {
         if (Test-Path -Path ([GUI_Config]::StatusPath)) {
@@ -54,7 +58,7 @@ class GUI_Config {
     }
 
     static [void] MergeLogs() {
-        $Logs = Get-ChildItem -Path ([GUI_Config]::LogsPath) | Where-Object { $_.Name -notlike "*$([GUI_Config]::RunRawLogName)*" }
+        $Logs = Get-ChildItem -Path ([GUI_Config]::LogsPath) | Where-Object { ($_.Name -notlike "*$([GUI_Config]::RunErrors)*") -and ($_.Name -ne $([GUI_Config]::ExecutionTimersName)) }
         $LogsArray = @()
         foreach ($File in $Logs) {
             $ImportedLog = Get-Content -Path $File.FullName
@@ -65,7 +69,8 @@ class GUI_Config {
         }
         $LogsArray = $LogsArray | Sort-Object { $_.Split("|")[0] }
         $MergedLogName = "$(([System.DateTime]::Now).ToString('yyy-MM-dd HH\.mm\.ss')) $([GUI_Config]::ProgramName)"
-        $LogsArray | Out-File -FilePath "$([GUI_Config]::MergedLogsPath)\$MergedLogName.log" 
+        Get-Content -Path "$([GUI_Config]::LogsPath)\$([GUI_Config]::ExecutionTimersName)" | Out-File -FilePath "$([GUI_Config]::MergedLogsPath)\$MergedLogName.log"
+        $LogsArray | Out-File -FilePath "$([GUI_Config]::MergedLogsPath)\$MergedLogName.log" -Append
 
     }
 
@@ -77,10 +82,22 @@ class GUI_Config {
     }
 
     static [void] StartInstance() {
-        if (Test-Path -Path ([GUI_Config]::LockFile)) {
+        # Check for another program instance
+        if ((Test-Path -Path ([GUI_Config]::LockFile)) -and
+            ((Get-ChildItem ([GUI_Config]::LockFile)).CreationTime.AddMinutes(([GUI_Config]::LockPeriodInMinutes)) -gt (Get-Date) )) {
             throw "Another instance is running"
         }
         else {
+            # If another instance is outdated remove lock file and kill process
+            if((Test-Path -Path ([GUI_Config]::LockFile))){
+                Remove-Item -Path ([GUI_Config]::LockFile) -Force -Confirm:$false
+                $ProcessName = (Get-ChildItem ./ -Filter "*.exe").Name.Split(".")[0]
+                try {
+                    Get-Process -Name $ProcessName | Sort-Object {$_.StartTime} -Descending | Select-Object -Skip 1 | Stop-process
+                }
+                catch {
+                }
+            }
             try {
                 New-Item -ItemType File -Path ([GUI_Config]::LockFile)
             }
