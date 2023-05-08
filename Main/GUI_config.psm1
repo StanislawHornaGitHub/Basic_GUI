@@ -1,11 +1,12 @@
 enum ComponentType {
+    Manual = -1
     Small_GUI = 0
     Big_GUI = 1
 }
 class GUI_Config {
     # Form Variables (Basic)
     static [string] $ProgramName = "Powershell GUI"
-    static [string] $ProgramTitle = "Script for report automation (test change)"
+    static [string] $ProgramTitle = "SW Weekly report"
     static [string] $RunButton = "Prepare Report"
 
     # Form Variables (Advanced)
@@ -20,6 +21,15 @@ class GUI_Config {
     static [int] $LockPeriodInMinutes = 40
     static [string] $ResultFolder = "$((Get-Location).Path)/Output"
 
+    # Required files
+    static [array] $MainProgramComponents = @(
+        'GUI_config.psm1',
+        'GUI_class.psm1',
+        'GUI_EnvironmentSelection.psm1',
+        'GUI_Functions.psm1',
+        'GUI_Handling_functions.psm1'
+    )
+
     # Logging Variables
     static [string] $StatusPath = "$((Get-Location).Path)\Main\Status"
     static [string] $LogsPath = "$((Get-Location).Path)\Main\Log"
@@ -32,12 +42,20 @@ class GUI_Config {
     static [string] $Execution_LogName = "Execution.log"
     static [string] $ExecutionTimersName = "ExecutionTimers.time"
     static [string] $RunErrors = "RUN-Errors.log"
+    static [array] $ErrorsToIgnore = @(
+        '*Exception calling "ParseExact" with "3" argument(s):*',
+        '*excel*',
+        '*ldk*'    
+    )
 
     static FolderStructureCheck() {
         if (Test-Path -Path ([GUI_Config]::StatusPath)) {
             Remove-Item -Path ([GUI_Config]::StatusPath) -Recurse -Force -Confirm:$false
         }
         New-Item -ItemType Directory -Path ([GUI_Config]::StatusPath) | Out-Null
+        if (-not (Test-Path -Path ([GUI_Config]::LogsPath))) {
+            New-Item -ItemType Directory -Path ([GUI_Config]::LogsPath) | Out-Null
+        }
         Get-ChildItem -Path ([GUI_Config]::LogsPath) | ForEach-Object {
             Remove-Item -Path $_.FullName -Force -Confirm:$false
         }
@@ -49,12 +67,63 @@ class GUI_Config {
         }
     }
 
+    static CheckRequiredFiles() {
+        $Check = @()
+        foreach ($file in [GUI_Config]::MainProgramComponents) {
+            if ((Test-Path -Path "$((Get-Location).Path)\Main\$file")) {
+                $Check += $true
+            }
+            else {
+                $Check += $false
+            }
+        }
+        $NumberOfMissingFiles = ($Check | Where-Object { $_ -eq $false }).count
+        if ($NumberOfMissingFiles -gt 0) {
+            $MissingFiles = @()
+            for ($i = 0; $i -lt $Check.Count; $i++) {
+                if ($Check[$i] -eq $false) {
+                    $MissingFiles += ([GUI_Config]::MainProgramComponents)[$i]
+                }
+            }
+            if ($NumberOfMissingFiles -eq 1) {
+                $Message = "$([GUI_Config]::ProgramName) files are corrupted.`nFollowing file is missing:`n$MissingFiles"
+            }
+            else {
+                $FilesToMessage = $MissingFiles -join "`n"
+                $Message = "$([GUI_Config]::ProgramName) files are corrupted.`nFollowing files are missing:`n$FilesToMessage"
+            }
+            Remove-Item -Path ([GUI_Config]::LockFile) -Force -Confirm:$false
+            throw $Message
+        }
+    }
+
     static [void] WriteLog([string]$Message, [String]$LogName) {
         [GUI_Config]::GenerateLog($Message) | Out-File -FilePath "$([GUI_Config]::LogsPath)/$LogName" -Append
     }
 
     static [string] GenerateLog([string]$Message) {
         return "$(([System.DateTime]::Now).ToString('HH\:mm\:ss\.fff')) | $Message"
+    }
+
+    static [void] SaveJobError($JobErrors) {
+        $FilteredErrors = @()
+        $JobErrors = $JobErrors | Sort-Object -Unique
+        foreach($CurrentError in $JobErrors) {
+            $flag = $false
+            foreach($ToIgnore in ([GUI_Config]::ErrorsToIgnore)){
+                if($CurrentError.Exception.Message -like $ToIgnore){
+                    $flag = $true
+                }
+            }
+            if($flag -eq $false){
+                $FilteredErrors += $CurrentError
+            }
+        }
+        $FilteredErrors | Out-File -FilePath "$([GUI_Config]::LogsPath)\$([GUI_Config]::RunErrors)" -Append
+        $FinalStatus = Get-ChildItem -Path ([GUI_Config]::StatusPath) -Filter ([GUI_Config]::FinalStatusExtension) | Select-Object -First 1
+        $Message = ($FinalStatus).Name.Split(".")[0]
+        $EndTime = ($FinalStatus).LastAccessTime.ToString('HH\:mm\:ss\.fff')
+        "Execution status: $Message ; End time: $EndTime`n`n" | Out-File -FilePath "$([GUI_Config]::LogsPath)\$([GUI_Config]::RunErrors)" -Append
     }
 
     static [void] MergeLogs() {
@@ -68,21 +137,44 @@ class GUI_Config {
             }
         }
         $LogsArray = $LogsArray | Sort-Object { $_.Split("|")[0] }
-        $MergedLogName = "$(([System.DateTime]::Now).ToString('yyy-MM-dd HH\.mm\.ss')) $([GUI_Config]::ProgramName)"
+        $FlagForLogs = $false
+        $flagForErrors = $false
         try {
-            $AdditionalData = Get-Content -Path "$([GUI_Config]::LogsPath)\$([GUI_Config]::ExecutionTimersName)" 
+            $EndTime = (Get-ChildItem -Path ([GUI_Config]::StatusPath) -Filter ([GUI_Config]::FinalStatusExtension) -ErrorAction Stop | Select-Object -First 1).LastAccessTime.ToString('yyy-MM-dd HH\.mm\.ss')
+        }
+        catch {
+            $EndTime = $(([System.DateTime]::Now).ToString('yyy-MM-dd HH\.mm\.ss'))
+        }
+        Get-ChildItem -Path ([GUI_Config]::StatusPath) -Filter ([GUI_Config]::FinalStatusExtension) | Remove-Item -Force -Confirm:$false
+        $MergedLogName = "$EndTime $([GUI_Config]::ProgramName)"
+        try {
+            $AdditionalData = Get-Content -Path "$([GUI_Config]::LogsPath)\$([GUI_Config]::ExecutionTimersName)" -ErrorAction Stop
             "Timers:" | Out-File -FilePath "$([GUI_Config]::MergedLogsPath)\$MergedLogName.log"
             $AdditionalData | Out-File -FilePath "$([GUI_Config]::MergedLogsPath)\$MergedLogName.log" -Append
+            $FlagForLogs = $true
+            $flagForErrors = $true
         }
         catch {}
+        if ($flagForErrors -eq $true) {
+            $Header = "`nErrors:"
+        }
+        else {
+            $Header = "Errors:"
+        }
         try {
-            $AdditionalData = Get-Content -Path "$([GUI_Config]::LogsPath)\$([GUI_Config]::RunErrors)" 
-            "`nErrors:" | Out-File -FilePath "$([GUI_Config]::MergedLogsPath)\$MergedLogName.log" -Append
+            $AdditionalData = Get-Content -Path "$([GUI_Config]::LogsPath)\$([GUI_Config]::RunErrors)" -ErrorAction Stop
+            $Header | Out-File -FilePath "$([GUI_Config]::MergedLogsPath)\$MergedLogName.log" -Append
             $AdditionalData | Out-File -FilePath "$([GUI_Config]::MergedLogsPath)\$MergedLogName.log" -Append
         }
         catch {}
+        if ($FlagForLogs -eq $true) {
+            $Header = "`n`nLogs:"
+        }
+        else {
+            $Header = "Logs:"
+        }
         try {
-            "`n`nLogs:" | Out-File -FilePath "$([GUI_Config]::MergedLogsPath)\$MergedLogName.log" -Append
+            $Header | Out-File -FilePath "$([GUI_Config]::MergedLogsPath)\$MergedLogName.log" -Append
             $LogsArray | Out-File -FilePath "$([GUI_Config]::MergedLogsPath)\$MergedLogName.log" -Append
         }
         catch {}
@@ -92,6 +184,15 @@ class GUI_Config {
         $Files = Get-ChildItem $([GUI_Config]::MergedLogsPath)
         $Files | Sort-Object { $_.CreationTimeUtc } -Descending | Select-Object -Skip ([GUI_Config]::ArchiveLogsNumber) | ForEach-Object {
             Remove-Item -Path $_.FullName -Force -Confirm:$false
+        }
+    }
+
+    static [void] CleanupStatuses(){
+        $Statuses = Get-ChildItem -Path $([GUI_Config]::StatusPath) 
+        if ($Statuses.Count -ge 1) {
+            $Statuses | ForEach-Object {
+                Remove-Item -Path $_.FullName -Force -Confirm:$false
+            }
         }
     }
 
@@ -119,6 +220,7 @@ class GUI_Config {
                 throw "Unknown error"
             }
         }
+        [GUI_Config]::CheckRequiredFiles()
         [GUI_Config]::FolderStructureCheck()
     }
 

@@ -288,12 +288,7 @@ class GUI {
         $this.GUI_Components.'Big_GUI'.'Label'."RunStatus".Font = `
             New-Object System.Drawing.Font('Microsoft Sans Serif', 10, [System.Drawing.FontStyle]::Bold)
         $this.GUI_Components.'Big_GUI'.'ProgressBar'.'Processing'.visible = $true
-        $Statuses = Get-ChildItem -Path $([GUI_Config]::StatusPath) | Where-Object { $_.Name -like ([GUI_Config]::FinalStatusExtension) }
-        if ($Statuses.Count -ge 1) {
-            $Statuses | ForEach-Object {
-                Remove-Item -Path $_.FullName -Force -Confirm:$false
-            }
-        }
+        [GUI_Config]::CleanupStatuses()
     }
     ShowExecutionStatus() {
         [GUI_Config]::WriteLog("ShowExecutionStatus method", ([GUI_Config]::GUI_LogName))
@@ -315,8 +310,8 @@ class GUI {
                     New-Object System.Drawing.Font('Microsoft Sans Serif', 12, [System.Drawing.FontStyle]::Bold)
             }
             [GUI_Config]::WriteLog("RUN execution status: $CurrentMessage", ([GUI_Config]::GUI_LogName))
-            
         }
+        [GUI_Config]::CleanupStatuses()
         $this.UnlockInputs()
     }
     WriteStatus() {
@@ -375,13 +370,15 @@ class GUI {
         return $false
     }
     InvokeConnection() {
-        $THIS_FORM = $this
-        $Portal = $this.GUI_Components.'Small_GUI'.'Box'.'Portal'.text
-        [GUI_Config]::WriteLog("InvokeConnection method - $Portal", ([GUI_Config]::GUI_LogName))
         if ($this.CheckInputs()) {
             return
         }
-        $EnvironmentalVariables = @{
+        $Portal = $this.GUI_Components.'Small_GUI'.'Box'.'Portal'.text
+        [GUI_Config]::WriteLog("InvokeConnection method - $Portal", ([GUI_Config]::GUI_LogName))
+        $Username = ($this.GUI_Components.'Small_GUI'.'Box'.'Login'.text)
+        $Password = ConvertTo-SecureString ($this.GUI_Components.'Small_GUI'.'Box'.'Password'.text) -AsPlainText -Force
+        $Credentials = New-Object System.Management.Automation.PSCredential  ($Username, $Password)
+        $Global:EnvironmentalVariables = @{
             'LogsPath'                  = ([GUI_Config]::LogsPath)
             'StatusPath'                = ([GUI_Config]::StatusPath)
             'LogName'                   = ([GUI_Config]::Connection_LogName)
@@ -390,12 +387,11 @@ class GUI {
             'ExecutionTimersName'       = ([GUI_Config]::ExecutionTimersName)
             'RunRawLogName'             = ([GUI_Config]::RunErrors)
         }
-        $Result = Invoke-Connection -GUI_Components $this.GUI_Components -EnvironmentalVariables $EnvironmentalVariables
+        $Result = Invoke-Connection -Portal $Portal -Credentials $Credentials
         if ($Result.'Connected' -eq $true) {
             [GUI_Config]::WriteLog("Connect execution status: Connected ; $Portal", ([GUI_Config]::GUI_LogName))
             $this.BigGUI()
-            $this.Engines = $Result.'Engines'
-            [GUI_Environment]::GUI_EnvironmentSelection($THIS_FORM.Engines, $THIS_FORM.GUI_Components.'Small_GUI'.'Box'.'Portal'.text)
+            $this.Engines = [GUI_Environment]::GUI_EnvironmentSelection($Result.'Engines', $Portal)
         }
         else {
             [GUI_Config]::WriteLog("Connect execution status: $($Result.'ErrorMessage')", ([GUI_Config]::GUI_LogName))
@@ -410,7 +406,7 @@ class GUI {
             return
         }
         $this.StartProcessing()
-        $EnvironmentalVariables = @{
+        $EnvironmentalVariablesFromClass = @{
             'LogsPath'                  = ([GUI_Config]::LogsPath)
             'StatusPath'                = ([GUI_Config]::StatusPath)
             'LogName'                   = ([GUI_Config]::Execution_LogName)
@@ -424,26 +420,29 @@ class GUI {
                 $GUI_Components,
                 $Engines,
                 $Location,
-                $EnvironmentalVariables
+                $EnvironmentalVariablesFromClass
             )
             Set-Location $Location
-            Invoke-Run -GUI_Components $GUI_Components -Engines $Engines -EnvironmentalVariables $EnvironmentalVariables
+            $Global:Timers = @{}
+            $Global:EnvironmentalVariables = $EnvironmentalVariablesFromClass
+            $Portal = $GUI_Components.'Small_GUI'.'Box'.'Portal'.text
+            $Username = ($GUI_Components.'Small_GUI'.'Box'.'Login'.text)
+            $Password = ConvertTo-SecureString ($GUI_Components.'Small_GUI'.'Box'.'Password'.text) -AsPlainText -Force
+            $Credentials = New-Object System.Management.Automation.PSCredential  ($Username, $Password)
+
+            Invoke-Run -Portal $Portal -Credentials $Credentials -Engines $Engines
 
         } -ArgumentList $this.GUI_Components, $this.Engines, 
         (Get-Location).Path, 
-        $EnvironmentalVariables
+        $EnvironmentalVariablesFromClass
 
         while ((Get-Job -Name 'Run').State -eq 'Running') {
             [System.Windows.Forms.Application]::DoEvents()
             $this.WriteStatus()
         }
         $job = Get-Job -Name 'Run'
-        $ErrorsFromJob = $job.ChildJobs.Error | Sort-Object -Unique | Where-Object { $_.Exception.Message -notlike '*Exception calling "ParseExact" with "3" argument(s):*' }
+        [GUI_Config]::SaveJobError(($job.ChildJobs.Error))
         Get-Job | Remove-Job
         $this.ShowExecutionStatus()
-        $ErrorsFromJob | Out-File -FilePath "$([GUI_Config]::LogsPath)\$([GUI_Config]::RunErrors)" -Append
-        $Message = $this.GUI_Components.'Big_GUI'.'Label'.'RunStatus'.text
-        $EndTime = (Get-ChildItem -Path ([GUI_Config]::StatusPath) -Filter ([GUI_Config]::FinalStatusExtension) | Select-Object -First 1).LastAccessTime.ToString('HH\:mm\:ss\.fff')
-        "Execution status: $Message ; End time: $EndTime`n`n" | Out-File -FilePath "$([GUI_Config]::LogsPath)\$([GUI_Config]::RunErrors)" -Append
     }
 }
