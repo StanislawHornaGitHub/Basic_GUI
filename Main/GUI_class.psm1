@@ -21,6 +21,13 @@ class GUI {
             'Button'      = @{}
             'ProgressBar' = @{}
         }
+        'Manual'    = @{
+            'Label'       = @{}
+            'Box'         = @{}
+            'Checkbox'    = @{}
+            'Button'      = @{}
+            'ProgressBar' = @{}
+        }
     }
     GUI() {
         [GUI_Config]::StartInstance()
@@ -63,11 +70,13 @@ class GUI {
 
         $this.NewLabel([ComponentType]"Small_GUI", "Password", "Password:", 20, 90)
 
-        $this.NewLabel([ComponentType]"Big_GUI", "ConnectionStatus", "Connection Status:", 140, 135)
-
-        $this.NewLabel([ComponentType]"Big_GUI", "ConnectionStatusDetails", "Connection StatusDetails", 285, 135)
-        $this.GUI_Components.'Big_GUI'.'Label'.'ConnectionStatusDetails'.Font = New-Object System.Drawing.Font('Microsoft Sans Serif', 10, [System.Drawing.FontStyle]::Bold)
-
+        if ((([GUI_Config]::InputVariables).'Password'.Enabled) -eq $true) {
+            $this.NewLabel([ComponentType]"Big_GUI", "ConnectionStatus", "Connection Status:", 140, 135)
+        }
+        if ((([GUI_Config]::InputVariables).'Password'.Enabled) -eq $true) {
+            $this.NewLabel([ComponentType]"Big_GUI", "ConnectionStatusDetails", "Connection StatusDetails", 285, 135)
+            $this.GUI_Components.'Big_GUI'.'Label'.'ConnectionStatusDetails'.Font = New-Object System.Drawing.Font('Microsoft Sans Serif', 10, [System.Drawing.FontStyle]::Bold)
+        }
         $this.NewLabel([ComponentType]"Big_GUI", "RunStatus", "Run Status", 150, 170)
 
         $this.NewCheckBox([ComponentType]"Small_GUI", "ShowPassword", "Show Password", 140, 110, 200, 20, $false, { $THIS_FORM.ShowPassword() })
@@ -76,18 +85,25 @@ class GUI {
         #------------------------- TextBoxes Section ------------------------#
         ######################################################################
 
-        $this.NewBox([ComponentType]"Small_GUI", "Portal", 140, 30, 300, 20, { $THIS_FORM.PortalChange() })
+        $this.NewBox([ComponentType](([GUI_Config]::InputVariables).'Portal'.'ComponentType'), "Portal", 140, 30, 300, 20, { $THIS_FORM.PortalChange() })
+        $this.GUI_Components.(([GUI_Config]::InputVariables).'Portal'.'ComponentType').'Box'.'Portal'.text = (([GUI_Config]::InputVariables).'Portal'.Value)
+        $this.GUI_Components.(([GUI_Config]::InputVariables).'Portal'.'ComponentType').'Box'.'Portal'.Enabled = (([GUI_Config]::InputVariables).'Portal'.Enabled)
 
-        $this.NewBox([ComponentType]"Small_GUI", "Login", 140, 60, 300, 20, { $THIS_FORM.LoginChange() })
+        $this.NewBox([ComponentType](([GUI_Config]::InputVariables).'Login'.'ComponentType'), "Login", 140, 60, 300, 20, { $THIS_FORM.LoginChange() })
+        $this.GUI_Components.(([GUI_Config]::InputVariables).'Login'.'ComponentType').'Box'.'Login'.text = (([GUI_Config]::InputVariables).'Login'.Value)
+        $this.GUI_Components.(([GUI_Config]::InputVariables).'Login'.'ComponentType').'Box'.'Login'.Enabled = (([GUI_Config]::InputVariables).'Login'.Enabled)
 
-        $this.NewBox([ComponentType]"Small_GUI", "Password", 140, 90, 300, 20, { $THIS_FORM.PasswordChange() })
-        $this.GUI_Components.'Small_GUI'.'Box'.'Password'.passwordchar = "*"
+        $this.NewBox([ComponentType](([GUI_Config]::InputVariables).'Password'.'ComponentType'), "Password", 140, 90, 300, 20, { $THIS_FORM.PasswordChange() })
+        $this.GUI_Components.(([GUI_Config]::InputVariables).'Password'.'ComponentType').'Box'.'Password'.passwordchar = "*"
+        $this.GUI_Components.(([GUI_Config]::InputVariables).'Password'.'ComponentType').'Box'.'Password'.text = (([GUI_Config]::InputVariables).'Password'.Value)
+        $this.GUI_Components.(([GUI_Config]::InputVariables).'Password'.'ComponentType').'Box'.'Password'.enabled = (([GUI_Config]::InputVariables).'Password'.Enabled)
 
         ######################################################################
         #------------------------- Buttons Section --------------------------#
         ######################################################################
-
-        $this.NewButton([ComponentType]"Small_GUI", "Connect", "Connect to Portal", 20, 130, 100, 30, { $THIS_FORM.InvokeConnection() })
+        if ((([GUI_Config]::InputVariables).'Password'.Enabled) -eq $true) {
+            $this.NewButton([ComponentType]"Small_GUI", "Connect", "Connect to Portal", 20, 130, 100, 30, { $THIS_FORM.InvokeConnection() })
+        }
 
         $this.NewButton([ComponentType]"Big_GUI", "Run", [GUI_Config]::RunButton, 20, 170, 120, 50, { $THIS_FORM.InvokeRun() })
         $this.GUI_Components.'Big_GUI'.'Button'.'Run'.ForeColor = 'green'
@@ -95,7 +111,13 @@ class GUI {
 
         $this.NewProcessingBar([ComponentType]"Big_GUI", 'Processing', 150, 202, 300, 15, 40)
         
-        $this.SmallGUI()
+        if ((([GUI_Config]::InputVariables).'Password'.Enabled) -eq $true) {
+            $this.SmallGUI()
+        }
+        else {
+            $this.BigGUI()
+        }
+        
         $this.Form.ShowDialog()
     }
     NewLabel(
@@ -239,10 +261,12 @@ class GUI {
     BigGUI() {
         [GUI_Config]::WriteLog("BigGUI method", ([GUI_Config]::GUI_LogName))
         $this.Form.ClientSize = New-Object System.Drawing.Point([GUI_Config]::Big_FormSize_X, [GUI_Config]::Big_FormSize_Y)
-        $this.GUI_Components.'Big_GUI'.'Label'.'ConnectionStatusDetails'.text = "Connected "
-        $this.GUI_Components.'Big_GUI'.'Label'.'ConnectionStatusDetails'.ForeColor = 'green'
-        $this.GUI_Components.'Big_GUI'.'Label'.'ConnectionStatusDetails'.Font = `
-            New-Object System.Drawing.Font('Microsoft Sans Serif', 12, [System.Drawing.FontStyle]::Bold)
+        if ((([GUI_Config]::InputVariables).'Password'.Enabled) -eq $true) {
+            $this.GUI_Components.'Big_GUI'.'Label'.'ConnectionStatusDetails'.text = "Connected "
+            $this.GUI_Components.'Big_GUI'.'Label'.'ConnectionStatusDetails'.ForeColor = 'green'
+            $this.GUI_Components.'Big_GUI'.'Label'.'ConnectionStatusDetails'.Font = `
+                New-Object System.Drawing.Font('Microsoft Sans Serif', 12, [System.Drawing.FontStyle]::Bold)
+        }
         $this.GUI_Components.'Big_GUI'.'Label'."RunStatus".ForeColor = 'black'
         $this.GUI_Components.'Big_GUI'.'Label'."RunStatus".text = ""
         $this.GUI_Components.'Small_GUI'.'Checkbox'.'ShowPassword'.checked = $false
@@ -263,6 +287,9 @@ class GUI {
         $Inputs = @('Box', 'Button', 'Checkbox')
         foreach ($Object in $Inputs) {
             foreach ($Type in $this.GUI_Components.Keys) {
+                if ([ComponentType]$Type -lt 0 ) {
+                    continue
+                }
                 foreach ($Component in $this.GUI_Components.$Type.$Object.Keys) {
                     $this.GUI_Components.$Type.$Object.$Component.enabled = $false
                 }
@@ -274,6 +301,9 @@ class GUI {
         $Inputs = @('Box', 'Button', 'Checkbox')
         foreach ($Object in $Inputs) {
             foreach ($Type in $this.GUI_Components.Keys) {
+                if ([ComponentType]$Type -lt 0 ) {
+                    continue
+                }
                 foreach ($Component in $this.GUI_Components.$Type.$Object.Keys) {
                     $this.GUI_Components.$Type.$Object.$Component.enabled = $true
                 }
@@ -330,11 +360,17 @@ class GUI {
     PortalChange() {
         if ($this.GUI_Components.'Big_GUI'.'Label'.'ConnectionStatusDetails'.text -notlike "Connected*") {
             return
+        }elseif ($this.GUI_Components.(([GUI_Config]::InputVariables).'Portal'.'ComponentType').'Box'.'Portal'.text -like "https://*") {
+            $FQDN = $this.GUI_Components.(([GUI_Config]::InputVariables).'Portal'.'ComponentType').'Box'.'Portal'.text
+            $this.GUI_Components.(([GUI_Config]::InputVariables).'Portal'.'ComponentType').'Box'.'Portal'.text = `
+            $FQDN.Substring("https://".Length, ($FQDN.Length - ("https://".Length))).Split("/")[0]
+            [GUI_Config]::WriteLog("Portal change - Formating invoked", ([GUI_Config]::GUI_LogName))
+            return 
         }
-        [GUI_Config]::GenerateLog("PortalChange method") | Out-File -FilePath "$([GUI_Config]::LogsPath)/$([GUI_Config]::GUI_LogName)" -Append
+        [GUI_Config]::WriteLog("PortalChange method", ([GUI_Config]::GUI_LogName))
         $this.SmallGUIwithConnectionStatus()
-        $this.GUI_Components.'Small_GUI'.'Box'.'Password'.text = ""
-        $this.GUI_Components.'Small_GUI'.'Box'.'Login'.text = ""
+        $this.GUI_Components.(([GUI_Config]::InputVariables).'Password'.'ComponentType').'Box'.'Password'.text = ""
+        $this.GUI_Components.(([GUI_Config]::InputVariables).'Password'.'ComponentType').'Box'.'Login'.text = ""
     }
     LoginChange() {
         if ($this.GUI_Components.'Big_GUI'.'Label'.'ConnectionStatusDetails'.text -notlike "Connected*") {
@@ -342,7 +378,7 @@ class GUI {
         }
         [GUI_Config]::GenerateLog("LoginChange method") | Out-File -FilePath "$([GUI_Config]::LogsPath)/$([GUI_Config]::GUI_LogName)" -Append
         $this.SmallGUIwithConnectionStatus()
-        $this.GUI_Components.'Small_GUI'.'Box'.'Password'.text = ""
+        $this.GUI_Components.(([GUI_Config]::InputVariables).'Password'.'ComponentType').'Box'.'Password'.text = ""
     }
     PasswordChange() {
         if ($this.GUI_Components.'Big_GUI'.'Label'.'ConnectionStatusDetails'.text -notlike "Connected*") {
@@ -354,17 +390,28 @@ class GUI {
     ShowPassword() {
         [GUI_Config]::GenerateLog("ShowPassword method") | Out-File -FilePath "$([GUI_Config]::LogsPath)/$([GUI_Config]::GUI_LogName)" -Append
         if ($this.GUI_Components.'Small_GUI'.'Checkbox'.'ShowPassword'.checked) {
-            $this.GUI_Components.'Small_GUI'.'Box'.'Password'.passwordchar = $null
+            $this.GUI_Components.(([GUI_Config]::InputVariables).'Password'.'ComponentType').'Box'.'Password'.passwordchar = $null
         }
         else {
-            $this.GUI_Components.'Small_GUI'.'Box'.'Password'.passwordchar = "*"
+            $this.GUI_Components.(([GUI_Config]::InputVariables).'Password'.'ComponentType').'Box'.'Password'.passwordchar = "*"
         }
     }
     [bool]CheckInputs() {
         [GUI_Config]::GenerateLog("CheckInputs method") | Out-File -FilePath "$([GUI_Config]::LogsPath)/$([GUI_Config]::GUI_LogName)" -Append
-        if ($this.GUI_Components.'Small_GUI'.'Box'.'Portal'.text.length -lt 1 -or
-            $this.GUI_Components.'Small_GUI'.'Box'.'Login'.text.length -lt 1 -or
-            $this.GUI_Components.'Small_GUI'.'Box'.'Password'.text.length -lt 1) {
+        
+        if ($this.GUI_Components.(([GUI_Config]::InputVariables).'Portal'.'ComponentType').'Box'.'Portal'.text.length -lt 1 -and
+            ([ComponentType](([GUI_Config]::InputVariables).'Portal'.'ComponentType')) -ge 0
+        ) {
+            return $true
+        }
+        if ($this.GUI_Components.(([GUI_Config]::InputVariables).'Login'.'ComponentType').'Box'.'Login'.text.length -lt 1 -and
+            ([ComponentType](([GUI_Config]::InputVariables).'Login'.'ComponentType')) -ge 0
+        ) {
+            return $true
+        }
+        if ($this.GUI_Components.(([GUI_Config]::InputVariables).'Password'.'ComponentType').'Box'.'Password'.text.length -lt 1 -and
+            ([ComponentType](([GUI_Config]::InputVariables).'Password'.'ComponentType')) -ge 0
+        ) {
             return $true
         }
         return $false
@@ -373,11 +420,18 @@ class GUI {
         if ($this.CheckInputs()) {
             return
         }
-        $Portal = $this.GUI_Components.'Small_GUI'.'Box'.'Portal'.text
+        $Portal = $this.GUI_Components.(([GUI_Config]::InputVariables).'Portal'.'ComponentType').'Box'.'Portal'.text
         [GUI_Config]::WriteLog("InvokeConnection method - $Portal", ([GUI_Config]::GUI_LogName))
-        $Username = ($this.GUI_Components.'Small_GUI'.'Box'.'Login'.text)
-        $Password = ConvertTo-SecureString ($this.GUI_Components.'Small_GUI'.'Box'.'Password'.text) -AsPlainText -Force
-        $Credentials = New-Object System.Management.Automation.PSCredential  ($Username, $Password)
+        $Username = ($this.GUI_Components.(([GUI_Config]::InputVariables).'Login'.'ComponentType').'Box'.'Login'.text)
+        try {
+            $Password = ConvertTo-SecureString ($this.GUI_Components.(([GUI_Config]::InputVariables).'Password'.'ComponentType').'Box'.'Password'.text) -AsPlainText -Force
+            $Credentials = New-Object System.Management.Automation.PSCredential  ($Username, $Password)
+        }
+        catch {
+            [GUI_Config]::WriteLog($_, ([GUI_Config]::GUI_LogName))
+            $Credentials = $null
+        }
+
         $Global:EnvironmentalVariables = @{
             'LogsPath'                  = ([GUI_Config]::LogsPath)
             'StatusPath'                = ([GUI_Config]::StatusPath)
@@ -400,7 +454,7 @@ class GUI {
         }
     }
     InvokeRun() {
-        $Portal = $this.GUI_Components.'Small_GUI'.'Box'.'Portal'.text
+        $Portal = $this.GUI_Components.(([GUI_Config]::InputVariables).'Portal'.'ComponentType').'Box'.'Portal'.text
         [GUI_Config]::WriteLog("InvokeRun method - $Portal", ([GUI_Config]::GUI_LogName))
         if ($this.CheckInputs()) {
             return
@@ -415,26 +469,38 @@ class GUI {
             'ExecutionTimersName'       = ([GUI_Config]::ExecutionTimersName)
             'RunRawLogName'             = ([GUI_Config]::RunErrors)
         }
+        $Portal = $this.GUI_Components.(([GUI_Config]::InputVariables).'Portal'.'ComponentType').'Box'.'Portal'.text
+        try {
+            $Username = ($this.GUI_Components.(([GUI_Config]::InputVariables).'Login'.'ComponentType').'Box'.'Login'.text)
+            $Password = ConvertTo-SecureString ($this.GUI_Components.(([GUI_Config]::InputVariables).'Password'.'ComponentType').'Box'.'Password'.text) -AsPlainText -Force
+            $Credentials = New-Object System.Management.Automation.PSCredential  ($Username, $Password)
+        }
+        catch {
+            [GUI_Config]::WriteLog($_, ([GUI_Config]::GUI_LogName))
+            $Credentials = $null
+        }
         Start-Job -Name 'Run' -InitializationScript { Import-Module ./Main/GUI_Functions.psm1 } -ScriptBlock {
             param(
                 $GUI_Components,
                 $Engines,
-                $Location,
-                $EnvironmentalVariablesFromClass
+                $CurrentLocation,
+                $EnvironmentalVariablesFromClass,
+                $Portal,
+                [PSCredential] $Credentials
             )
-            Set-Location $Location
+            Set-Location $CurrentLocation
+            $Global:Location = $CurrentLocation
             $Global:Timers = @{}
             $Global:EnvironmentalVariables = $EnvironmentalVariablesFromClass
-            $Portal = $GUI_Components.'Small_GUI'.'Box'.'Portal'.text
-            $Username = ($GUI_Components.'Small_GUI'.'Box'.'Login'.text)
-            $Password = ConvertTo-SecureString ($GUI_Components.'Small_GUI'.'Box'.'Password'.text) -AsPlainText -Force
-            $Credentials = New-Object System.Management.Automation.PSCredential  ($Username, $Password)
+
 
             Invoke-Run -Portal $Portal -Credentials $Credentials -Engines $Engines
 
         } -ArgumentList $this.GUI_Components, $this.Engines, 
         (Get-Location).Path, 
-        $EnvironmentalVariablesFromClass
+        $EnvironmentalVariablesFromClass,
+        $Portal,
+        $Credentials
 
         while ((Get-Job -Name 'Run').State -eq 'Running') {
             [System.Windows.Forms.Application]::DoEvents()

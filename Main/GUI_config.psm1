@@ -10,6 +10,23 @@ class GUI_Config {
     static [string] $RunButton = "Prepare Report"
 
     # Form Variables (Advanced)
+    static [hashtable] $InputVariables = @{
+        'Portal' = @{
+            'Value' = "MoJ"
+            'Enabled' = $false
+            'ComponentType' = "Manual"  # Default: "Small_GUI"
+        }
+        'Login' = @{
+            'Value' = ""
+            'Enabled' = $true
+            'ComponentType' = "Small_GUI"   # Default: "Small_GUI"
+        }
+        'Password' = @{
+            'Value' = ""
+            'Enabled' = $true
+            'ComponentType' = "Small_GUI"   # Default: "Small_GUI"
+        }
+    }
     static [int] $Big_FormSize_X = 480
     static [int] $Big_FormSize_Y = 150
     static [int] $Small_FormSize_X = 480
