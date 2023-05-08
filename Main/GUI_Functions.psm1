@@ -1,16 +1,30 @@
+# GUI components Structure to read out details
+# $GUI_Components = @{
+#     'Small_GUI' = @{
+#         'Label'       = @{}
+#         'Box'         = @{}
+#         'Checkbox'    = @{}
+#         'Button'      = @{}
+#         'ProgressBar' = @{}
+#     }
+#     'Big_GUI'   = @{
+#         'Label'       = @{}
+#         'Box'         = @{}
+#         'Checkbox'    = @{}
+#         'Button'      = @{}
+#         'ProgressBar' = @{}
+#     }
+# }
+
+
 Add-Type -AssemblyName System.Windows.Forms
 [System.Windows.Forms.Application]::EnableVisualStyles()
 [void] [System.Reflection.Assembly]::LoadWithPartialName("System.Drawing")
 function Invoke-Connection {
     param(
         [hashtable]$GUI_Components,
-        [String]$LogsPath,
-        [String]$LogName
+        [hashtable]$EnvironmentalVariables
     )
-    $Logs = @{
-        'LogsPath' = $LogsPath
-        'LogName'  = $LogName
-    }
     $Portal = $GUI_Components.'Small_GUI'.'Box'.'Portal'.text
     $Username = ($GUI_Components.'Small_GUI'.'Box'.'Login'.text)
     $Password = ConvertTo-SecureString ($GUI_Components.'Small_GUI'.'Box'.'Password'.text) -AsPlainText -Force
@@ -18,7 +32,7 @@ function Invoke-Connection {
     # Write-Host $Portal
     # Write-Host $Credentials
     # Write-Host $Engines
-    Write-Log -Message "Trying to retrieve engine list" -Logs $Logs
+    Write-Log -Message "Trying to retrieve engine list" -EnvironmentalVariables $EnvironmentalVariables
     $num = Get-Random -Minimum 0 -Maximum 2
     $ResultHash = @{}
     if ($num -eq 1) {
@@ -26,13 +40,13 @@ function Invoke-Connection {
         $engines = @{'engine1' = 'aaaaa'
             'engine2'          = 'bbbb'
         }
-        Write-Log -Message "Engine list ready" -Logs $Logs
+        Write-Log -Message "Engine list ready" -EnvironmentalVariables $EnvironmentalVariables
         $ResultHash.Add('Engines', $engines)
     }
     else {
         $ResultHash.Add("Connected", $false)
         $ResultHash.Add("ErrorMessage", "Unauthorised access")
-        Write-Log -Message "Unauthorised access" -Logs $Logs
+        Write-Log -Message "Unauthorised access" -EnvironmentalVariables $EnvironmentalVariables
     }
     return $ResultHash
 }
@@ -40,21 +54,8 @@ function Invoke-Run {
     param(
         [hashtable]$GUI_Components,
         [hashtable]$Engines,
-        [String]$LogsPath,
-        [String]$LogName,
-        [String]$ProcessingStatusExtension,
-        [String]$FinalStatusExtension,
-        [String]$ExecutionTimersName,
-        [String]$RunRawLogName
+        [hashtable]$EnvironmentalVariables
     )
-    $Logs = @{
-        'LogsPath'                  = $LogsPath
-        'LogName'                   = $LogName
-        'ProcessingStatusExtension' = ($ProcessingStatusExtension.Replace("*", ""))
-        'FinalStatusExtension'      = ($FinalStatusExtension.Replace("*", ""))
-        'ExecutionTimersName'       = $ExecutionTimersName
-        'RunRawLogName'             = $RunRawLogName
-    }
     $Portal = $GUI_Components.'Small_GUI'.'Box'.'Portal'.text
     $Username = ($GUI_Components.'Small_GUI'.'Box'.'Login'.text)
     $Password = ConvertTo-SecureString ($GUI_Components.'Small_GUI'.'Box'.'Password'.text) -AsPlainText -Force
@@ -64,45 +65,57 @@ function Invoke-Run {
     # Write-Host $Credentials
     # Write-Host $Engines
     $delay = 2000
+    Get-Process excel
+    [System.DateTime]::ParseExact("-", "yyyy-MM-dd'T'HH:mm:ss", $null) 
+    [System.DateTime]::ParseExact("-", "yyyy-MM-dd'T'HH:mm:ss", $null) 
+    [System.DateTime]::ParseExact("-", "yyyy-MM-dd'T'HH:mm:ss", $null) 
+
+    $Timers = Write-Status -Message "Microsoft Edge" -EnvironmentalVariables $EnvironmentalVariables -Timers $Timers
     Start-Sleep -Milliseconds $delay
-    $Timers = Write-Status -Message "Processing" -Logs $Logs -Timers $Timers
+    $Timers = Write-Status -Message "Teams" -EnvironmentalVariables $EnvironmentalVariables -Timers $Timers
     Start-Sleep -Milliseconds $delay
-    $Timers = Write-Status -Message "Teams" -Logs $Logs -Timers $Timers
+    $Timers = Write-Status -Message "Chrome" -EnvironmentalVariables $EnvironmentalVariables -Timers $Timers
     Start-Sleep -Milliseconds $delay
-    $Timers = Write-Status -Message "Chrome" -Logs $Logs -Timers $Timers
-    Start-Sleep -Milliseconds $delay
-    $Timers = Write-Status -Message "End" -Logs $Logs -Timers $Timers
+
+    lfjn
+    ldk
+
+    $Timers = Write-Status -Message "End" -EnvironmentalVariables $EnvironmentalVariables -Timers $Timers
     $num = Get-Random -Minimum 0 -Maximum 2
     $ResultHash = @{}
+    douh
     if ($num -eq 1) {
-        $Timers = Write-Status -Message "Success" -Logs $Logs -Timers $Timers -Final
+        $Timers = Write-Status -Message "Success" -EnvironmentalVariables $EnvironmentalVariables -Timers $Timers -Final
     }
     else {
-        $Timers = Write-Status -Message "Connection aborted" -Logs $Logs -Timers $Timers -Final
+        $Timers = Write-Status -Message "Connection aborted" -EnvironmentalVariables $EnvironmentalVariables -Timers $Timers -Final
     }
+    $Error | Out-File -FilePath "$($EnvironmentalVariables.'LogsPath')\$($EnvironmentalVariables.'RunRawLogName')" -Append
     return $ResultHash
 }
 function Write-Status {
     param (
         [String]$Message,
-        [hashtable]$Logs,
+        [hashtable]$EnvironmentalVariables,
         [hashtable]$Timers,
         [Switch]$Final
     )
     if ($Final) {
-        $Message | Out-File -FilePath "./Main/Status/$Message.finalstatus"
-        "$(([System.DateTime]::Now).ToString('HH\:mm\:ss\.fff')) | $Message" | Out-File -FilePath "$($Logs.'LogsPath')/$($Logs.'LogName')" -Append
+        New-Item -ItemType File -Path "$($EnvironmentalVariables.'StatusPath')/$Message$($EnvironmentalVariables.'FinalStatusExtension')" | Out-Null
+        "$(([System.DateTime]::Now).ToString('HH\:mm\:ss\.fff')) | $Message" | Out-File -FilePath "$($EnvironmentalVariables.'LogsPath')/$($EnvironmentalVariables.'LogName')" -Append
     }
     else {
-        $Message | Out-File -FilePath "./Main/Status/$Message.status"
-        "$(([System.DateTime]::Now).ToString('HH\:mm\:ss\.fff')) | $Message" | Out-File -FilePath "$($Logs.'LogsPath')/$($Logs.'LogName')" -Append
+        New-Item -ItemType File -Path "$($EnvironmentalVariables.'StatusPath')/$Message$($EnvironmentalVariables.'ProcessingStatusExtension')" | Out-Null
+        "$(([System.DateTime]::Now).ToString('HH\:mm\:ss\.fff')) | $Message" | Out-File -FilePath "$($EnvironmentalVariables.'LogsPath')/$($EnvironmentalVariables.'LogName')" -Append
     }
     if (($Timers.Keys.Count -eq 0) -or ($null -eq $Timers)) {
         $StopWatchOverall = [System.Diagnostics.Stopwatch]::StartNew()
         $StopWatchMessage = [System.Diagnostics.Stopwatch]::StartNew()
-        $Timers = @{'Order' = @('Overall proccessing time', $Message)
-            'Stopwatches'   = @{'Overall proccessing time' = $StopWatchOverall
-                $Message                                 = $StopWatchMessage
+        $Timers = @{
+            'Order'       = @('Overall proccessing time', $Message)
+            'Stopwatches' = @{
+                'Overall proccessing time' = $StopWatchOverall
+                $Message                   = $StopWatchMessage
             }
         }
     }
@@ -114,15 +127,16 @@ function Write-Status {
         }
         foreach ($name in $Timers.'Order') {
             $Time = $Timers.'Stopwatches'.$name.Elapsed.ToString("hh\:mm\:ss\.fff")
-            "$name - $Time" | Out-File -FilePath "$($Logs.'LogsPath')/$($Logs.'ExecutionTimersName')" -Append
+            "$name - $Time" | Out-File -FilePath "$($EnvironmentalVariables.'LogsPath')/$($EnvironmentalVariables.'ExecutionTimersName')" -Append
         }
-        "Execution status: $Message ; End time: $(([System.DateTime]::Now).ToString('HH\:mm\:ss\.fff'))" | Out-File -FilePath "$($Logs.'LogsPath')/$($Logs.'ExecutionTimersName')" -Append
+        $EndTime = (Get-ChildItem -Path $($EnvironmentalVariables.'StatusPath') -Filter "*$($EnvironmentalVariables.'FinalStatusExtension')" | Select-Object -First 1).LastAccessTime.ToString('HH\:mm\:ss\.fff')
+        "Execution status: $Message ; End time: $EndTime`n" | Out-File -FilePath "$($EnvironmentalVariables.'LogsPath')/$($EnvironmentalVariables.'ExecutionTimersName')" -Append
     }
     else {
         $StopWatchMessage = [System.Diagnostics.Stopwatch]::StartNew()
         $StopWatchToPause = ($Timers.'Order')[(($Timers.'Order').count - 1)]
         $Timers.'Stopwatches'.$StopWatchToPause.Stop()
-        $Timers.'Order' += $Message
+        $Timers.'Order' += "$Message"
         $Timers.'Stopwatches'.Add($Message, $StopWatchMessage)
     }
     return $Timers
@@ -130,7 +144,7 @@ function Write-Status {
 function Write-Log {
     param (
         [String]$Message,
-        [hashtable]$Logs
+        [hashtable]$EnvironmentalVariables
     )
-    "$(([System.DateTime]::Now).ToString('HH\:mm\:ss\.fff')) | $Message" | Out-File -FilePath "$($Logs.'LogsPath')/$($Logs.'LogName')" -Append
+    "$(([System.DateTime]::Now).ToString('HH\:mm\:ss\.fff')) | $Message" | Out-File -FilePath "$($EnvironmentalVariables.'LogsPath')/$($EnvironmentalVariables.'LogName')" -Append
 }

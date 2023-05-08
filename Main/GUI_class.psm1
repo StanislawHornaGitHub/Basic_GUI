@@ -24,7 +24,7 @@ class GUI {
     }
     GUI() {
         [GUI_Config]::StartInstance()
-        [GUI_Config]::WriteLog("GUI constructor Invoked",([GUI_Config]::GUI_LogName))
+        [GUI_Config]::WriteLog("GUI constructor Invoked", ([GUI_Config]::GUI_LogName))
         $THIS_FORM = $this
         ######################################################################
         #----------------------- GUI Forms Definition -----------------------#
@@ -206,7 +206,7 @@ class GUI {
         }
     }
     SmallGUI() {
-        [GUI_Config]::WriteLog("SmallGUI method",([GUI_Config]::GUI_LogName))
+        [GUI_Config]::WriteLog("SmallGUI method", ([GUI_Config]::GUI_LogName))
         $this.GUI_Components.'Small_GUI'.'Checkbox'.'ShowPassword'.visible = $true
         foreach ($Object in $this.GUI_Components.'Big_GUI'.Keys) {
             foreach ($Component in $this.GUI_Components.'Big_GUI'.$Object.Keys) {
@@ -217,7 +217,7 @@ class GUI {
         $this.Form.AcceptButton = $this.GUI_Components.'Small_GUI'.'Button'.'Connect'
     }
     SmallGUIwithConnectionStatus() {
-        [GUI_Config]::WriteLog("SmallGUIwithConnectionStatus method",([GUI_Config]::GUI_LogName))
+        [GUI_Config]::WriteLog("SmallGUIwithConnectionStatus method", ([GUI_Config]::GUI_LogName))
         $this.SmallGUI()
         $this.GUI_Components.'Big_GUI'.'Label'.'ConnectionStatus'.visible = $true
         $this.GUI_Components.'Big_GUI'.'Label'.'ConnectionStatusDetails'.text = "Not connected "
@@ -227,7 +227,7 @@ class GUI {
         $this.GUI_Components.'Big_GUI'.'Label'.'ConnectionStatusDetails'.visible = $true
     }
     SmallGUIwithConnectionStatus([String]$ErrorMessage) {
-        [GUI_Config]::WriteLog("SmallGUIwithConnectionStatus([String]$ErrorMessage) method",([GUI_Config]::GUI_LogName))
+        [GUI_Config]::WriteLog("SmallGUIwithConnectionStatus([String]$ErrorMessage) method", ([GUI_Config]::GUI_LogName))
         $this.SmallGUI()
         $this.GUI_Components.'Big_GUI'.'Label'.'ConnectionStatus'.visible = $true
         $this.GUI_Components.'Big_GUI'.'Label'.'ConnectionStatusDetails'.text = $ErrorMessage
@@ -237,7 +237,7 @@ class GUI {
         $this.GUI_Components.'Big_GUI'.'Label'.'ConnectionStatusDetails'.visible = $true
     }
     BigGUI() {
-        [GUI_Config]::WriteLog("BigGUI method",([GUI_Config]::GUI_LogName))
+        [GUI_Config]::WriteLog("BigGUI method", ([GUI_Config]::GUI_LogName))
         $this.Form.ClientSize = New-Object System.Drawing.Point([GUI_Config]::Big_FormSize_X, [GUI_Config]::Big_FormSize_Y)
         $this.GUI_Components.'Big_GUI'.'Label'.'ConnectionStatusDetails'.text = "Connected "
         $this.GUI_Components.'Big_GUI'.'Label'.'ConnectionStatusDetails'.ForeColor = 'green'
@@ -259,7 +259,7 @@ class GUI {
         $this.Form.AcceptButton = $this.GUI_Components.'Big_GUI'.'Button'.'Run'
     }
     LockInputs() {
-        [GUI_Config]::WriteLog("LockInputs method",([GUI_Config]::GUI_LogName))
+        [GUI_Config]::WriteLog("LockInputs method", ([GUI_Config]::GUI_LogName))
         $Inputs = @('Box', 'Button', 'Checkbox')
         foreach ($Object in $Inputs) {
             foreach ($Type in $this.GUI_Components.Keys) {
@@ -270,7 +270,7 @@ class GUI {
         }
     }
     UnlockInputs() {
-        [GUI_Config]::WriteLog("UnlockInputs method",([GUI_Config]::GUI_LogName))
+        [GUI_Config]::WriteLog("UnlockInputs method", ([GUI_Config]::GUI_LogName))
         $Inputs = @('Box', 'Button', 'Checkbox')
         foreach ($Object in $Inputs) {
             foreach ($Type in $this.GUI_Components.Keys) {
@@ -281,25 +281,27 @@ class GUI {
         }
     }
     StartProcessing() {
-        [GUI_Config]::WriteLog("StartProcessing method",([GUI_Config]::GUI_LogName))
+        [GUI_Config]::WriteLog("StartProcessing method", ([GUI_Config]::GUI_LogName))
         $this.LockInputs()
-        $this.GUI_Components.'Big_GUI'.'Label'."RunStatus".text = ""
+        $this.GUI_Components.'Big_GUI'.'Label'."RunStatus".text = "Processing..."
         $this.GUI_Components.'Big_GUI'.'Label'."RunStatus".ForeColor = 'orange'
         $this.GUI_Components.'Big_GUI'.'Label'."RunStatus".Font = `
             New-Object System.Drawing.Font('Microsoft Sans Serif', 10, [System.Drawing.FontStyle]::Bold)
         $this.GUI_Components.'Big_GUI'.'ProgressBar'.'Processing'.visible = $true
+        $Statuses = Get-ChildItem -Path $([GUI_Config]::StatusPath) | Where-Object { $_.Name -like ([GUI_Config]::FinalStatusExtension) }
+        if ($Statuses.Count -ge 1) {
+            $Statuses | ForEach-Object {
+                Remove-Item -Path $_.FullName -Force -Confirm:$false
+            }
+        }
     }
     ShowExecutionStatus() {
-        [GUI_Config]::WriteLog("ShowExecutionStatus method",([GUI_Config]::GUI_LogName))
+        [GUI_Config]::WriteLog("ShowExecutionStatus method", ([GUI_Config]::GUI_LogName))
         $this.GUI_Components.'Big_GUI'.'ProgressBar'.'Processing'.visible = $false
         $Statuses = Get-ChildItem -Path $([GUI_Config]::StatusPath) | Where-Object { $_.Name -like ([GUI_Config]::FinalStatusExtension) }
         if ($Statuses.Count -ge 1) { 
             $Current = $Statuses | Sort-Object { $_.CreationTimeUtc } -Descending | Select-Object -First 1
             $CurrentMessage = $Current.Name.Split(".")[0]
-            try {
-                Remove-Item -Path $Current.FullName -Force -Confirm:$false -ErrorAction Stop
-            }
-            catch {}
             if ($CurrentMessage -eq "Success") {
                 $this.GUI_Components.'Big_GUI'.'Label'."RunStatus".text = ($CurrentMessage + " ")
                 $this.GUI_Components.'Big_GUI'.'Label'."RunStatus".ForeColor = 'green'
@@ -312,7 +314,7 @@ class GUI {
                 $this.GUI_Components.'Big_GUI'.'Label'."RunStatus".Font = `
                     New-Object System.Drawing.Font('Microsoft Sans Serif', 12, [System.Drawing.FontStyle]::Bold)
             }
-            [GUI_Config]::WriteLog("RUN execution status: $CurrentMessage",([GUI_Config]::GUI_LogName))
+            [GUI_Config]::WriteLog("RUN execution status: $CurrentMessage", ([GUI_Config]::GUI_LogName))
             
         }
         $this.UnlockInputs()
@@ -327,7 +329,7 @@ class GUI {
             }
             catch {}
             $this.GUI_Components.'Big_GUI'.'Label'.'RunStatus'.text = $CurrentMessage
-            [GUI_Config]::WriteLog("WriteStatus method - Status: $CurrentMessage",([GUI_Config]::GUI_LogName))
+            [GUI_Config]::WriteLog("WriteStatus method - Status: $CurrentMessage", ([GUI_Config]::GUI_LogName))
         }
     }
     PortalChange() {
@@ -374,65 +376,74 @@ class GUI {
     }
     InvokeConnection() {
         $THIS_FORM = $this
-        [GUI_Config]::WriteLog("InvokeConnection method",([GUI_Config]::GUI_LogName))
+        $Portal = $this.GUI_Components.'Small_GUI'.'Box'.'Portal'.text
+        [GUI_Config]::WriteLog("InvokeConnection method - $Portal", ([GUI_Config]::GUI_LogName))
         if ($this.CheckInputs()) {
             return
         }
-        $Result = Invoke-Connection -GUI_Components $this.GUI_Components -LogsPath ([GUI_Config]::LogsPath) -LogName ([GUI_Config]::Connection_LogName)
+        $EnvironmentalVariables = @{
+            'LogsPath'                  = ([GUI_Config]::LogsPath)
+            'StatusPath'                = ([GUI_Config]::StatusPath)
+            'LogName'                   = ([GUI_Config]::Connection_LogName)
+            'ProcessingStatusExtension' = (([GUI_Config]::ProcessingStatusExtension).Replace("*", ""))
+            'FinalStatusExtension'      = (([GUI_Config]::FinalStatusExtension).Replace("*", ""))
+            'ExecutionTimersName'       = ([GUI_Config]::ExecutionTimersName)
+            'RunRawLogName'             = ([GUI_Config]::RunErrors)
+        }
+        $Result = Invoke-Connection -GUI_Components $this.GUI_Components -EnvironmentalVariables $EnvironmentalVariables
         if ($Result.'Connected' -eq $true) {
-            [GUI_Config]::WriteLog("Connect execution status: Connected",([GUI_Config]::GUI_LogName))
+            [GUI_Config]::WriteLog("Connect execution status: Connected ; $Portal", ([GUI_Config]::GUI_LogName))
             $this.BigGUI()
             $this.Engines = $Result.'Engines'
             [GUI_Environment]::GUI_EnvironmentSelection($THIS_FORM.Engines, $THIS_FORM.GUI_Components.'Small_GUI'.'Box'.'Portal'.text)
         }
         else {
-            [GUI_Config]::WriteLog("Connect execution status: $($Result.'ErrorMessage')",([GUI_Config]::GUI_LogName))
+            [GUI_Config]::WriteLog("Connect execution status: $($Result.'ErrorMessage')", ([GUI_Config]::GUI_LogName))
             $this.SmallGUIwithConnectionStatus(($Result.'ErrorMessage' + " "))
             $this.Engines = $null
         }
     }
     InvokeRun() {
-        [GUI_Config]::WriteLog("InvokeRun method",([GUI_Config]::GUI_LogName))
+        $Portal = $this.GUI_Components.'Small_GUI'.'Box'.'Portal'.text
+        [GUI_Config]::WriteLog("InvokeRun method - $Portal", ([GUI_Config]::GUI_LogName))
         if ($this.CheckInputs()) {
             return
         }
         $this.StartProcessing()
+        $EnvironmentalVariables = @{
+            'LogsPath'                  = ([GUI_Config]::LogsPath)
+            'StatusPath'                = ([GUI_Config]::StatusPath)
+            'LogName'                   = ([GUI_Config]::Execution_LogName)
+            'ProcessingStatusExtension' = (([GUI_Config]::ProcessingStatusExtension).Replace("*", ""))
+            'FinalStatusExtension'      = (([GUI_Config]::FinalStatusExtension).Replace("*", ""))
+            'ExecutionTimersName'       = ([GUI_Config]::ExecutionTimersName)
+            'RunRawLogName'             = ([GUI_Config]::RunErrors)
+        }
         Start-Job -Name 'Run' -InitializationScript { Import-Module ./Main/GUI_Functions.psm1 } -ScriptBlock {
             param(
                 $GUI_Components,
                 $Engines,
                 $Location,
-                $StatusPath,
-                $ProcessingStatusExtension,
-                $FinalStatusExtension,
-                $LogsPath,
-                $Execution_LogName,
-                $ExecutionTimersName,
-                $RunRawLogName
+                $EnvironmentalVariables
             )
             Set-Location $Location
-            Invoke-Run -GUI_Components $GUI_Components -Engines $Engines `
-                -LogsPath $LogsPath `
-                -LogName $Execution_LogName `
-                -ProcessingStatusExtension $ProcessingStatusExtension `
-                -FinalStatusExtension $FinalStatusExtension `
-                -ExecutionTimersName $ExecutionTimersName `
-                -RunRawLogName $RunRawLogName
+            Invoke-Run -GUI_Components $GUI_Components -Engines $Engines -EnvironmentalVariables $EnvironmentalVariables
+
         } -ArgumentList $this.GUI_Components, $this.Engines, 
         (Get-Location).Path, 
-        ([GUI_Config]::StatusPath),
-        ([GUI_Config]::ProcessingStatusExtension),
-        ([GUI_Config]::FinalStatusExtension), 
-        ([GUI_Config]::LogsPath),
-        ([GUI_Config]::Execution_LogName),
-        ([GUI_Config]::ExecutionTimersName),
-        ([GUI_Config]::RunErrors)
+        $EnvironmentalVariables
 
         while ((Get-Job -Name 'Run').State -eq 'Running') {
             [System.Windows.Forms.Application]::DoEvents()
             $this.WriteStatus()
         }
+        $job = Get-Job -Name 'Run'
+        $ErrorsFromJob = $job.ChildJobs.Error | Sort-Object -Unique | Where-Object { $_.Exception.Message -notlike '*Exception calling "ParseExact" with "3" argument(s):*' }
         Get-Job | Remove-Job
         $this.ShowExecutionStatus()
+        $ErrorsFromJob | Out-File -FilePath "$([GUI_Config]::LogsPath)\$([GUI_Config]::RunErrors)" -Append
+        $Message = $this.GUI_Components.'Big_GUI'.'Label'.'RunStatus'.text
+        $EndTime = (Get-ChildItem -Path ([GUI_Config]::StatusPath) -Filter ([GUI_Config]::FinalStatusExtension) | Select-Object -First 1).LastAccessTime.ToString('HH\:mm\:ss\.fff')
+        "Execution status: $Message ; End time: $EndTime`n`n" | Out-File -FilePath "$([GUI_Config]::LogsPath)\$([GUI_Config]::RunErrors)" -Append
     }
 }

@@ -30,8 +30,8 @@ class GUI_Config {
     static [string] $GUI_LogName = "GUI.log"
     static [string] $Connection_LogName = "Connection.log"
     static [string] $Execution_LogName = "Execution.log"
-    static [string] $RunErrors = "RUN-Errors.log"
     static [string] $ExecutionTimersName = "ExecutionTimers.time"
+    static [string] $RunErrors = "RUN-Errors.log"
 
     static FolderStructureCheck() {
         if (Test-Path -Path ([GUI_Config]::StatusPath)) {
@@ -69,9 +69,23 @@ class GUI_Config {
         }
         $LogsArray = $LogsArray | Sort-Object { $_.Split("|")[0] }
         $MergedLogName = "$(([System.DateTime]::Now).ToString('yyy-MM-dd HH\.mm\.ss')) $([GUI_Config]::ProgramName)"
-        Get-Content -Path "$([GUI_Config]::LogsPath)\$([GUI_Config]::ExecutionTimersName)" | Out-File -FilePath "$([GUI_Config]::MergedLogsPath)\$MergedLogName.log"
-        $LogsArray | Out-File -FilePath "$([GUI_Config]::MergedLogsPath)\$MergedLogName.log" -Append
-
+        try {
+            $AdditionalData = Get-Content -Path "$([GUI_Config]::LogsPath)\$([GUI_Config]::ExecutionTimersName)" 
+            "Timers:" | Out-File -FilePath "$([GUI_Config]::MergedLogsPath)\$MergedLogName.log"
+            $AdditionalData | Out-File -FilePath "$([GUI_Config]::MergedLogsPath)\$MergedLogName.log" -Append
+        }
+        catch {}
+        try {
+            $AdditionalData = Get-Content -Path "$([GUI_Config]::LogsPath)\$([GUI_Config]::RunErrors)" 
+            "`nErrors:" | Out-File -FilePath "$([GUI_Config]::MergedLogsPath)\$MergedLogName.log" -Append
+            $AdditionalData | Out-File -FilePath "$([GUI_Config]::MergedLogsPath)\$MergedLogName.log" -Append
+        }
+        catch {}
+        try {
+            "`n`nLogs:" | Out-File -FilePath "$([GUI_Config]::MergedLogsPath)\$MergedLogName.log" -Append
+            $LogsArray | Out-File -FilePath "$([GUI_Config]::MergedLogsPath)\$MergedLogName.log" -Append
+        }
+        catch {}
     }
 
     static [void] CleanupOldLogs() {
@@ -89,11 +103,11 @@ class GUI_Config {
         }
         else {
             # If another instance is outdated remove lock file and kill process
-            if((Test-Path -Path ([GUI_Config]::LockFile))){
+            if ((Test-Path -Path ([GUI_Config]::LockFile))) {
                 Remove-Item -Path ([GUI_Config]::LockFile) -Force -Confirm:$false
                 $ProcessName = (Get-ChildItem ./ -Filter "*.exe").Name.Split(".")[0]
                 try {
-                    Get-Process -Name $ProcessName | Sort-Object {$_.StartTime} -Descending | Select-Object -Skip 1 | Stop-process
+                    Get-Process -Name $ProcessName | Sort-Object { $_.StartTime } -Descending | Select-Object -Skip 1 | Stop-process
                 }
                 catch {
                 }
