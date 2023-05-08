@@ -8,7 +8,7 @@ class GUI_Environment {
         }
     }
 
-    static [hashtable] GUI_EnvironmentSelection([hashtable]$Engines, [string]$PortalFQDN) {
+    static [System.Object] GUI_EnvironmentSelection($Engines, [string]$PortalFQDN) {
         [GUI_Config]::WriteLog("Environment Selection invoked - $PortalFQDN",([GUI_Config]::GUI_LogName))
         if (-not (([GUI_Environment]::PortalsToFilter).ContainsKey($PortalFQDN))) {
             [GUI_Config]::WriteLog("Nothing to filter",([GUI_Config]::GUI_LogName))

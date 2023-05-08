@@ -41,7 +41,7 @@ function Invoke-Run {
     param(
         [string] $Portal,
         [pscredential] $Credentials,
-        [hashtable]$Engines
+        $Engines
     )
     
     $delay = 2000
