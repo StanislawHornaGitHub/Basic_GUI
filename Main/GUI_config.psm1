@@ -6,7 +6,7 @@ enum ComponentType {
 class GUI_Config {
     # Form Variables (Basic)
     static [string] $ProgramName = "Powershell GUI"
-    static [string] $ProgramTitle = "SW Weekly report"
+    static [string] $ProgramTitle = "GUI for Powershell automation"
     static [string] $RunButton = "Prepare Report"
 
     # Form Variables (Advanced)
