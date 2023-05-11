@@ -7,21 +7,28 @@ class GUI {
     # GUI
     $Form
     $GUI_Components = @{
-        'Small_GUI' = @{
+        'Small_GUI'   = @{
             'Label'       = @{}
             'Box'         = @{}
             'Checkbox'    = @{}
             'Button'      = @{}
             'ProgressBar' = @{}
         }
-        'Big_GUI'   = @{
+        'Big_GUI'     = @{
             'Label'       = @{}
             'Box'         = @{}
             'Checkbox'    = @{}
             'Button'      = @{}
             'ProgressBar' = @{}
         }
-        'Manual'    = @{
+        'Manual'      = @{
+            'Label'       = @{}
+            'Box'         = @{}
+            'Checkbox'    = @{}
+            'Button'      = @{}
+            'ProgressBar' = @{}
+        }
+        'Measurement' = @{
             'Label'       = @{}
             'Box'         = @{}
             'Checkbox'    = @{}
@@ -70,6 +77,7 @@ class GUI {
 
         $this.NewLabel([ComponentType]"Small_GUI", "Password", "Password:", 20, 90)
 
+
         if ((([GUI_Config]::InputVariables).'Password'.Enabled) -eq $true) {
             $this.NewLabel([ComponentType]"Big_GUI", "ConnectionStatus", "Connection Status:", 140, 135)
         }
@@ -80,6 +88,16 @@ class GUI {
         $this.NewLabel([ComponentType]"Big_GUI", "RunStatus", "Run Status", 150, 170)
 
         $this.NewCheckBox([ComponentType]"Small_GUI", "ShowPassword", "Show Password", 140, 110, 200, 20, $false, { $THIS_FORM.ShowPassword() })
+
+        ######################################################################
+        #------------------------ Measurement Section -----------------------#
+        ######################################################################
+        $this.NewLabel([ComponentType]"Measurement", "CurrentTitle", "Current consumption:", 500, 30)
+        $this.NewLabel([ComponentType]"Measurement", "PeakTitle", "Peak consumption:", 500, 120)
+        $this.NewLabel([ComponentType]"Measurement", "currentCPU", "CCPU", 510, 60)
+        $this.NewLabel([ComponentType]"Measurement", "peakCPU", "PCPU", 510, 150)
+        $this.NewLabel([ComponentType]"Measurement", "currentRAM", "CRAM", 510, 90)
+        $this.NewLabel([ComponentType]"Measurement", "peakRAM", "PRAM", 510, 180)
 
         ######################################################################
         #------------------------- TextBoxes Section ------------------------#
@@ -138,6 +156,9 @@ class GUI {
             $Label.Font = New-Object System.Drawing.Font('Microsoft Sans Serif', 12)
             $this.GUI_Components.$TypeToHash.'Label'.Add($Name, $Label)
             $this.Form.Controls.Add($this.GUI_Components.$TypeToHash.'Label'.$Name)
+        }
+        if($Type -eq [ComponentType]'Measurement'){
+            $this.GUI_Components.$TypeToHash.'Label'.$Name.visible = $false
         }
     }
     NewBox(
@@ -235,6 +256,9 @@ class GUI {
                 $this.GUI_Components.'Big_GUI'.$Object.$Component.Visible = $false
             }
         }
+        foreach($Component in $this.GUI_Components.'Measurement'.'Label'.Keys){
+            $this.GUI_Components.'Measurement'.'Label'.$Component.Visible = $false
+        }
         $this.Form.ClientSize = New-Object System.Drawing.Point([GUI_Config]::Small_FormSize_X, [GUI_Config]::Small_FormSize_Y)
         $this.Form.AcceptButton = $this.GUI_Components.'Small_GUI'.'Button'.'Connect'
     }
@@ -313,6 +337,10 @@ class GUI {
     StartProcessing() {
         [GUI_Config]::WriteLog("StartProcessing method", ([GUI_Config]::GUI_LogName))
         $this.LockInputs()
+        foreach($Component in $this.GUI_Components.'Measurement'.'Label'.Keys){
+            $this.GUI_Components.'Measurement'.'Label'.$Component.Visible = $true
+            
+        }
         $this.GUI_Components.'Big_GUI'.'Label'."RunStatus".text = "Processing..."
         $this.GUI_Components.'Big_GUI'.'Label'."RunStatus".ForeColor = 'orange'
         $this.GUI_Components.'Big_GUI'.'Label'."RunStatus".Font = `
@@ -355,15 +383,30 @@ class GUI {
             catch {}
             $this.GUI_Components.'Big_GUI'.'Label'.'RunStatus'.text = $CurrentMessage
             [GUI_Config]::WriteLog("WriteStatus method - Status: $CurrentMessage", ([GUI_Config]::GUI_LogName))
+            $this.WriteUsage()
         }
+    }
+    WriteUsage(){
+        try {
+            $usage = (Get-content "$([GUI_Config]::StatusPath)/Resources.usage" -ErrorAction Stop)[2]
+        }
+        catch {
+            return
+        }
+        $this.GUI_Components.'Measurement'.'Label'.'currentCPU'.text = "CPU: $($usage[0]) %"
+        $this.GUI_Components.'Measurement'.'Label'.'peakCPU'.text = "CPU: $($usage[2]) %"
+        #$this.GUI_Components.'Measurement'.'Label'.'currentRAM'.text = "RAM: $($usage[1]) MB"
+        $this.GUI_Components.'Measurement'.'Label'.'currentRAM'.text = "RAM: $($this.GUI_Components.'Small_GUI'.'Box'.'Login'.text) MB"
+        $this.GUI_Components.'Measurement'.'Label'.'peakRAM'.text = "RAM: $($usage[3]) MB"
     }
     PortalChange() {
         if ($this.GUI_Components.'Big_GUI'.'Label'.'ConnectionStatusDetails'.text -notlike "Connected*") {
             return
-        }elseif ($this.GUI_Components.(([GUI_Config]::InputVariables).'Portal'.'ComponentType').'Box'.'Portal'.text -like "https://*") {
+        }
+        elseif ($this.GUI_Components.(([GUI_Config]::InputVariables).'Portal'.'ComponentType').'Box'.'Portal'.text -like "https://*") {
             $FQDN = $this.GUI_Components.(([GUI_Config]::InputVariables).'Portal'.'ComponentType').'Box'.'Portal'.text
             $this.GUI_Components.(([GUI_Config]::InputVariables).'Portal'.'ComponentType').'Box'.'Portal'.text = `
-            $FQDN.Substring("https://".Length, ($FQDN.Length - ("https://".Length))).Split("/")[0]
+                $FQDN.Substring("https://".Length, ($FQDN.Length - ("https://".Length))).Split("/")[0]
             [GUI_Config]::WriteLog("Portal change - Formating invoked", ([GUI_Config]::GUI_LogName))
             return 
         }
@@ -466,6 +509,7 @@ class GUI {
             'LogName'                   = ([GUI_Config]::Execution_LogName)
             'ProcessingStatusExtension' = (([GUI_Config]::ProcessingStatusExtension).Replace("*", ""))
             'FinalStatusExtension'      = (([GUI_Config]::FinalStatusExtension).Replace("*", ""))
+            'UsageExtension'            = (([GUI_Config]::UsageExtension).Replace("*", ""))
             'ExecutionTimersName'       = ([GUI_Config]::ExecutionTimersName)
             'RunRawLogName'             = ([GUI_Config]::RunErrors)
         }
@@ -479,6 +523,8 @@ class GUI {
             [GUI_Config]::WriteLog($_, ([GUI_Config]::GUI_LogName))
             $Credentials = $null
         }
+        $IDs = (get-process powershell).ID
+
         Start-Job -Name 'Run' -InitializationScript { Import-Module ./Main/GUI_Functions.psm1 } -ScriptBlock {
             param(
                 $GUI_Components,
@@ -502,10 +548,41 @@ class GUI {
         $Portal,
         $Credentials
 
-        while ((Get-Job -Name 'Run').State -eq 'Running') {
+        Start-Job -Name 'Measure Consumption' -InitializationScript { Import-Module ./Main/GUI_Functions.psm1 } -ScriptBlock {
+            param(
+                $CurrentLocation,
+                $EnvironmentalVariablesFromClass,
+                $IDs,
+                $GUI_Measurement
+            )
+          
+            Set-Location $CurrentLocation
+            $Global:Location = $CurrentLocation
+            $Global:EnvironmentalVariables = $EnvironmentalVariablesFromClass
+            $Global:ExistingPSprocesses = $IDs
+            $Global:CPUs  = (Get-WMIObject Win32_ComputerSystem).NumberOfLogicalProcessors
+            $Global:GUI = $GUI_Measurement
+            $Global:Consumption = @{
+                'currentCPU' = 0
+                'currentRAM' = 0
+                'peakCPU'    = 0
+                'peakRAM'    = 0
+                'sumCPU'     = 0
+                'sumRAM'     = 0
+                'counter'    = 0
+            }
+
+            do {
+                Get-Consumption
+            }while (-not (Test-Path -Path "$($EnvironmentalVariablesFromClass.'StatusPath')/*$($EnvironmentalVariablesFromClass.'FinalStatusExtension')"))
+
+        } -ArgumentList (Get-Location).Path, $EnvironmentalVariablesFromClass, $IDs, $this.GUI_Components.'Measurement'
+
+        while ((Get-Job).State -contains 'Running') {
             [System.Windows.Forms.Application]::DoEvents()
             $this.WriteStatus()
         }
+
         $job = Get-Job -Name 'Run'
         [GUI_Config]::SaveJobError(($job.ChildJobs.Error))
         Get-Job | Remove-Job

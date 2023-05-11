@@ -50,3 +50,56 @@ function Write-Log {
     )
     "$(([System.DateTime]::Now).ToString('HH\:mm\:ss\.fff')) | $Message" | Out-File -FilePath "$($Global:EnvironmentalVariables.'LogsPath')/$($Global:EnvironmentalVariables.'LogName')" -Append
 }
+<#
+            $Global:Location = $CurrentLocation
+            $Global:EnvironmentalVariables = $EnvironmentalVariablesFromClass
+            $Global:ExistingPSprocesses = $IDs
+            $Global:Consumption = @{
+                'currentCPU' = 0
+                'currentRAM' = ""
+                'peakCPU' = 0
+                'peakRAM' = ""
+                'sumCPU' = 0
+                'sumRAM' = 0
+                'counter' = 0
+            }
+
+1 milisecond = 10000 ticks
+#>
+function Get-Consumption {
+    $delay = 1000
+    $StartSnap = (Get-Process powershell | Where-Object { $_.ID -notin $Global:ExistingPSprocesses })
+    Start-Sleep -Milliseconds $delay
+    $EndSnap = (Get-Process powershell | Where-Object { $_.ID -notin $Global:ExistingPSprocesses })
+    
+    $StartCPUtime = 0
+    $StartSnap | ForEach-Object { $StartCPUtime += $_.TotalProcessorTime.Milliseconds }
+
+    $EndCPUtime = 0
+    $EndSnap | ForEach-Object { $EndCPUtime += $_.TotalProcessorTime.Milliseconds }
+    if ($EndCPUtime -gt $StartCPUtime) {
+        $Global:Consumption.'currentCPU' = [math]::Round((($EndCPUtime - $StartCPUtime) / ($delay * $Global:CPUs) * 100),2)
+    }
+    if ($Global:Consumption.'currentCPU' -gt $Global:Consumption.'peakCPU') {
+        $Global:Consumption.'peakCPU' = $Global:Consumption.'currentCPU'
+    }
+
+    $RAMusageMB = 0
+    $EndSnap | ForEach-Object { $RAMusageMB += $_.WorkingSet }
+    $RAMusageMB /= 1MB
+    $Global:Consumption.'currentRAM' = [math]::Round($RAMusageMB,1)
+    if ($Global:Consumption.'currentRAM' -gt $Global:Consumption.'peakRAM') {
+        $Global:Consumption.'peakRAM' = $Global:Consumption.'currentRAM'
+    }
+
+    $Global:Consumption.'sumCPU' += $Global:Consumption.'currentCPU'
+    $Global:Consumption.'sumRAM' += $Global:Consumption.'currentRAM'
+    $Global:Consumption.'counter' ++
+    Write-Consumption
+}
+function Write-Consumption {
+    ($Global:Consumption.currentCPU) | Out-File -FilePath "$($Global:EnvironmentalVariables.'StatusPath')/Resources$($Global:EnvironmentalVariables.'UsageExtension')"
+    $Global:Consumption.currentRAM | Out-File -FilePath "$($Global:EnvironmentalVariables.'StatusPath')/Resources$($Global:EnvironmentalVariables.'UsageExtension')" -Append
+    $Global:Consumption.peakCPU | Out-File -FilePath "$($Global:EnvironmentalVariables.'StatusPath')/Resources$($Global:EnvironmentalVariables.'UsageExtension')" -Append
+    $Global:Consumption.peakRAM | Out-File -FilePath "$($Global:EnvironmentalVariables.'StatusPath')/Resources$($Global:EnvironmentalVariables.'UsageExtension')" -Append    
+}

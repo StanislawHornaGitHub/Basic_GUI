@@ -1,4 +1,5 @@
 enum ComponentType {
+    Measurement = -2
     Manual = -1
     Small_GUI = 0
     Big_GUI = 1
@@ -54,6 +55,7 @@ class GUI_Config {
     static [int] $ArchiveLogsNumber = 20
     static [string] $ProcessingStatusExtension = "*.status"
     static [string] $FinalStatusExtension = "*.finalstatus"
+    static [string] $UsageExtension = "*.usage"
     static [string] $GUI_LogName = "GUI.log"
     static [string] $Connection_LogName = "Connection.log"
     static [string] $Execution_LogName = "Execution.log"
