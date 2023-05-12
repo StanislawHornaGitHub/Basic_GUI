@@ -92,12 +92,12 @@ class GUI {
         ######################################################################
         #------------------------ Measurement Section -----------------------#
         ######################################################################
-        $this.NewLabel([ComponentType]"Measurement", "CurrentTitle", "Current consumption:", 500, 30)
-        $this.NewLabel([ComponentType]"Measurement", "PeakTitle", "Peak consumption:", 500, 120)
-        $this.NewLabel([ComponentType]"Measurement", "currentCPU", "CCPU", 510, 60)
-        $this.NewLabel([ComponentType]"Measurement", "peakCPU", "PCPU", 510, 150)
-        $this.NewLabel([ComponentType]"Measurement", "currentRAM", "CRAM", 510, 90)
-        $this.NewLabel([ComponentType]"Measurement", "peakRAM", "PRAM", 510, 180)
+        $this.NewLabel([ComponentType]"Measurement", "CurrentTitle", "Current consumption:", 460, 30)
+        $this.NewLabel([ComponentType]"Measurement", "PeakTitle", "Peak consumption:", 460, 120)
+        $this.NewLabel([ComponentType]"Measurement", "currentCPU", "CCPU", 470, 60)
+        $this.NewLabel([ComponentType]"Measurement", "peakCPU", "PCPU", 470, 150)
+        $this.NewLabel([ComponentType]"Measurement", "currentRAM", "CRAM", 470, 90)
+        $this.NewLabel([ComponentType]"Measurement", "peakRAM", "PRAM", 470, 180)
 
         ######################################################################
         #------------------------- TextBoxes Section ------------------------#
@@ -157,7 +157,7 @@ class GUI {
             $this.GUI_Components.$TypeToHash.'Label'.Add($Name, $Label)
             $this.Form.Controls.Add($this.GUI_Components.$TypeToHash.'Label'.$Name)
         }
-        if($Type -eq [ComponentType]'Measurement'){
+        if ($Type -eq [ComponentType]'Measurement') {
             $this.GUI_Components.$TypeToHash.'Label'.$Name.visible = $false
         }
     }
@@ -256,7 +256,7 @@ class GUI {
                 $this.GUI_Components.'Big_GUI'.$Object.$Component.Visible = $false
             }
         }
-        foreach($Component in $this.GUI_Components.'Measurement'.'Label'.Keys){
+        foreach ($Component in $this.GUI_Components.'Measurement'.'Label'.Keys) {
             $this.GUI_Components.'Measurement'.'Label'.$Component.Visible = $false
         }
         $this.Form.ClientSize = New-Object System.Drawing.Point([GUI_Config]::Small_FormSize_X, [GUI_Config]::Small_FormSize_Y)
@@ -337,7 +337,7 @@ class GUI {
     StartProcessing() {
         [GUI_Config]::WriteLog("StartProcessing method", ([GUI_Config]::GUI_LogName))
         $this.LockInputs()
-        foreach($Component in $this.GUI_Components.'Measurement'.'Label'.Keys){
+        foreach ($Component in $this.GUI_Components.'Measurement'.'Label'.Keys) {
             $this.GUI_Components.'Measurement'.'Label'.$Component.Visible = $true
             
         }
@@ -370,9 +370,12 @@ class GUI {
             [GUI_Config]::WriteLog("RUN execution status: $CurrentMessage", ([GUI_Config]::GUI_LogName))
         }
         [GUI_Config]::CleanupStatuses()
+        $this.GUI_Components.'Measurement'.'Label'.'currentCPU'.text = "CPU: - %"
+        $this.GUI_Components.'Measurement'.'Label'.'currentRAM'.text = "RAM: - MB"
         $this.UnlockInputs()
     }
     WriteStatus() {
+        $this.WriteUsage()
         $Statuses = Get-ChildItem -Path $([GUI_Config]::StatusPath) | Where-Object { $_.Name -like ([GUI_Config]::ProcessingStatusExtension) }
         if ($Statuses.Count -ge 1) { 
             $Current = $Statuses | Sort-Object { $_.CreationTimeUtc } -Descending | Select-Object -First 1
@@ -382,22 +385,39 @@ class GUI {
             }
             catch {}
             $this.GUI_Components.'Big_GUI'.'Label'.'RunStatus'.text = $CurrentMessage
-            [GUI_Config]::WriteLog("WriteStatus method - Status: $CurrentMessage", ([GUI_Config]::GUI_LogName))
-            $this.WriteUsage()
+            [GUI_Config]::WriteLog("WriteStatus method - Status: $CurrentMessage", ([GUI_Config]::GUI_LogName))   
         }
     }
-    WriteUsage(){
+    WriteUsage() {
         try {
-            $usage = (Get-content "$([GUI_Config]::StatusPath)/Resources.usage" -ErrorAction Stop)[2]
+            $currentCPU = (Get-ChildItem -Path $([GUI_Config]::StatusPath) -Filter "currentCPU-*").Name.Split("-")[1]
         }
         catch {
-            return
+            $currentCPU = "-"
         }
-        $this.GUI_Components.'Measurement'.'Label'.'currentCPU'.text = "CPU: $($usage[0]) %"
-        $this.GUI_Components.'Measurement'.'Label'.'peakCPU'.text = "CPU: $($usage[2]) %"
-        #$this.GUI_Components.'Measurement'.'Label'.'currentRAM'.text = "RAM: $($usage[1]) MB"
-        $this.GUI_Components.'Measurement'.'Label'.'currentRAM'.text = "RAM: $($this.GUI_Components.'Small_GUI'.'Box'.'Login'.text) MB"
-        $this.GUI_Components.'Measurement'.'Label'.'peakRAM'.text = "RAM: $($usage[3]) MB"
+        $this.GUI_Components.'Measurement'.'Label'.'currentCPU'.text = "CPU: $currentCPU %"
+        try {
+            $currentRAM = (Get-ChildItem -Path $([GUI_Config]::StatusPath) -Filter "currentRAM-*").Name.Split("-")[1]
+        }
+        catch {
+            $currentRAM = "-"
+        }
+        $this.GUI_Components.'Measurement'.'Label'.'currentRAM'.text = "RAM: $currentRAM MB"
+        try {
+            $peakCPU = (Get-ChildItem -Path $([GUI_Config]::StatusPath) -Filter "peakCPU-*").Name.Split("-")[1]
+        }
+        catch {
+            $peakCPU = "-"
+        }
+        $this.GUI_Components.'Measurement'.'Label'.'peakCPU'.text = "CPU: $peakCPU %"
+        try {
+            $peakRAM = (Get-ChildItem -Path $([GUI_Config]::StatusPath) -Filter "peakRAM-*").Name.Split("-")[1]
+        }
+        catch {
+            $peakRAM = "-"
+        }
+        $this.GUI_Components.'Measurement'.'Label'.'peakRAM'.text = "RAM: $peakRAM MB"
+
     }
     PortalChange() {
         if ($this.GUI_Components.'Big_GUI'.'Label'.'ConnectionStatusDetails'.text -notlike "Connected*") {
@@ -509,7 +529,7 @@ class GUI {
             'LogName'                   = ([GUI_Config]::Execution_LogName)
             'ProcessingStatusExtension' = (([GUI_Config]::ProcessingStatusExtension).Replace("*", ""))
             'FinalStatusExtension'      = (([GUI_Config]::FinalStatusExtension).Replace("*", ""))
-            'UsageExtension'            = (([GUI_Config]::UsageExtension).Replace("*", ""))
+            'RecourceConsumption'       = ([GUI_Config]::RecourceConsumption)
             'ExecutionTimersName'       = ([GUI_Config]::ExecutionTimersName)
             'RunRawLogName'             = ([GUI_Config]::RunErrors)
         }
@@ -560,7 +580,7 @@ class GUI {
             $Global:Location = $CurrentLocation
             $Global:EnvironmentalVariables = $EnvironmentalVariablesFromClass
             $Global:ExistingPSprocesses = $IDs
-            $Global:CPUs  = (Get-WMIObject Win32_ComputerSystem).NumberOfLogicalProcessors
+            $Global:CPUs = (Get-WMIObject Win32_ComputerSystem).NumberOfLogicalProcessors
             $Global:GUI = $GUI_Measurement
             $Global:Consumption = @{
                 'currentCPU' = 0
@@ -575,6 +595,7 @@ class GUI {
             do {
                 Get-Consumption
             }while (-not (Test-Path -Path "$($EnvironmentalVariablesFromClass.'StatusPath')/*$($EnvironmentalVariablesFromClass.'FinalStatusExtension')"))
+            Write-ConsumptionSummary
 
         } -ArgumentList (Get-Location).Path, $EnvironmentalVariablesFromClass, $IDs, $this.GUI_Components.'Measurement'
 

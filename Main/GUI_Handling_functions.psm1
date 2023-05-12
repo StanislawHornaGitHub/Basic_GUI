@@ -67,7 +67,7 @@ function Write-Log {
 1 milisecond = 10000 ticks
 #>
 function Get-Consumption {
-    $delay = 1000
+    $delay = 2000
     $StartSnap = (Get-Process powershell | Where-Object { $_.ID -notin $Global:ExistingPSprocesses })
     Start-Sleep -Milliseconds $delay
     $EndSnap = (Get-Process powershell | Where-Object { $_.ID -notin $Global:ExistingPSprocesses })
@@ -98,8 +98,23 @@ function Get-Consumption {
     Write-Consumption
 }
 function Write-Consumption {
-    ($Global:Consumption.currentCPU) | Out-File -FilePath "$($Global:EnvironmentalVariables.'StatusPath')/Resources$($Global:EnvironmentalVariables.'UsageExtension')"
-    $Global:Consumption.currentRAM | Out-File -FilePath "$($Global:EnvironmentalVariables.'StatusPath')/Resources$($Global:EnvironmentalVariables.'UsageExtension')" -Append
-    $Global:Consumption.peakCPU | Out-File -FilePath "$($Global:EnvironmentalVariables.'StatusPath')/Resources$($Global:EnvironmentalVariables.'UsageExtension')" -Append
-    $Global:Consumption.peakRAM | Out-File -FilePath "$($Global:EnvironmentalVariables.'StatusPath')/Resources$($Global:EnvironmentalVariables.'UsageExtension')" -Append    
+    Get-ChildItem -Path $($Global:EnvironmentalVariables.'StatusPath') -Filter "currentCPU-*" | Remove-Item -Force -Confirm:$false
+    New-Item -ItemType File -Path "$($Global:EnvironmentalVariables.'StatusPath')/currentCPU-$($Global:Consumption.currentCPU)"
+    Get-ChildItem -Path $($Global:EnvironmentalVariables.'StatusPath') -Filter "currentRAM-*" | Remove-Item -Force -Confirm:$false
+    New-Item -ItemType File -Path "$($Global:EnvironmentalVariables.'StatusPath')/currentRAM-$($Global:Consumption.currentRAM)"
+    Get-ChildItem -Path $($Global:EnvironmentalVariables.'StatusPath') -Filter "peakCPU-*" | Remove-Item -Force -Confirm:$false
+    New-Item -ItemType File -Path "$($Global:EnvironmentalVariables.'StatusPath')/peakCPU-$($Global:Consumption.peakCPU)"
+    Get-ChildItem -Path $($Global:EnvironmentalVariables.'StatusPath') -Filter "peakRAM-*" | Remove-Item -Force -Confirm:$false
+    New-Item -ItemType File -Path "$($Global:EnvironmentalVariables.'StatusPath')/peakRAM-$($Global:Consumption.peakRAM)"   
+}
+function Write-ConsumptionSummary{
+    "peakCPU: $($Global:Consumption.'peakCPU') %" | Out-File -FilePath "$($Global:EnvironmentalVariables.'LogsPath')/$($Global:EnvironmentalVariables.'RecourceConsumption')" -Append
+    "peakRAM: $($Global:Consumption.'peakRAM') MB" | Out-File -FilePath "$($Global:EnvironmentalVariables.'LogsPath')/$($Global:EnvironmentalVariables.'RecourceConsumption')" -Append
+    $AverageCPU = ($Global:Consumption.'sumCPU') / ($Global:Consumption.'counter')
+    $AverageRAM =  ($Global:Consumption.'sumRAM') / ($Global:Consumption.'counter')
+    "AverageCPU: $AverageCPU %" | Out-File -FilePath "$($Global:EnvironmentalVariables.'LogsPath')/$($Global:EnvironmentalVariables.'RecourceConsumption')" -Append
+    "AverageRAM: $AverageRAM MB" | Out-File -FilePath "$($Global:EnvironmentalVariables.'LogsPath')/$($Global:EnvironmentalVariables.'RecourceConsumption')" -Append
+    $EndTime = (Get-ChildItem -Path $($Global:EnvironmentalVariables.'StatusPath') -Filter "*$($Global:EnvironmentalVariables.'FinalStatusExtension')" | Select-Object -First 1).LastAccessTime.ToString('HH\:mm\:ss\.fff')
+    $Message = (Get-ChildItem -Path $($Global:EnvironmentalVariables.'StatusPath') -Filter "*$($Global:EnvironmentalVariables.'FinalStatusExtension')" | Select-Object -First 1).Name.Split(".")[0]
+    "Execution status: $Message ; End time: $EndTime`n" | Out-File -FilePath "$($Global:EnvironmentalVariables.'LogsPath')/$($Global:EnvironmentalVariables.'RecourceConsumption')" -Append
 }

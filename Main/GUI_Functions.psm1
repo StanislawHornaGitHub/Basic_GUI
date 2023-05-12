@@ -64,7 +64,6 @@ function Invoke-Run {
     lfjn
     ldk
     Write-Status -Message "End"  
-    Start-Sleep -Seconds 10
     $num = Get-Random -Minimum 0 -Maximum 2
     $ResultHash = @{}
     douh
