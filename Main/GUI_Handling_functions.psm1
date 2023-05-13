@@ -98,14 +98,17 @@ function Get-Consumption {
     Write-Consumption
 }
 function Write-Consumption {
-    Get-ChildItem -Path $($Global:EnvironmentalVariables.'StatusPath') -Filter "currentCPU-*" | Remove-Item -Force -Confirm:$false
-    New-Item -ItemType File -Path "$($Global:EnvironmentalVariables.'StatusPath')/currentCPU-$($Global:Consumption.currentCPU)"
-    Get-ChildItem -Path $($Global:EnvironmentalVariables.'StatusPath') -Filter "currentRAM-*" | Remove-Item -Force -Confirm:$false
-    New-Item -ItemType File -Path "$($Global:EnvironmentalVariables.'StatusPath')/currentRAM-$($Global:Consumption.currentRAM)"
-    Get-ChildItem -Path $($Global:EnvironmentalVariables.'StatusPath') -Filter "peakCPU-*" | Remove-Item -Force -Confirm:$false
-    New-Item -ItemType File -Path "$($Global:EnvironmentalVariables.'StatusPath')/peakCPU-$($Global:Consumption.peakCPU)"
-    Get-ChildItem -Path $($Global:EnvironmentalVariables.'StatusPath') -Filter "peakRAM-*" | Remove-Item -Force -Confirm:$false
-    New-Item -ItemType File -Path "$($Global:EnvironmentalVariables.'StatusPath')/peakRAM-$($Global:Consumption.peakRAM)"   
+    Get-ChildItem -Path $($Global:EnvironmentalVariables.'StatusPath') -Filter "currentCPU_*" | `
+    Rename-Item -NewName "currentCPU_$($Global:Consumption.currentCPU)"
+
+    Get-ChildItem -Path $($Global:EnvironmentalVariables.'StatusPath') -Filter "currentRAM_*" | `
+    Rename-Item -NewName "currentRAM_$($Global:Consumption.currentRAM)"
+
+    Get-ChildItem -Path $($Global:EnvironmentalVariables.'StatusPath') -Filter "peakCPU_*" | `
+    Rename-Item -NewName "peakCPU_$($Global:Consumption.peakCPU)"
+
+    Get-ChildItem -Path $($Global:EnvironmentalVariables.'StatusPath') -Filter "peakRAM_*" | `
+    Rename-Item -NewName "peakRAM_$($Global:Consumption.peakRAM)"   
 }
 function Write-ConsumptionSummary{
     "peakCPU: $($Global:Consumption.'peakCPU') %" | Out-File -FilePath "$($Global:EnvironmentalVariables.'LogsPath')/$($Global:EnvironmentalVariables.'RecourceConsumption')" -Append

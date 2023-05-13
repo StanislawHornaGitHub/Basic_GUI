@@ -390,28 +390,28 @@ class GUI {
     }
     WriteUsage() {
         try {
-            $currentCPU = (Get-ChildItem -Path $([GUI_Config]::StatusPath) -Filter "currentCPU-*").Name.Split("-")[1]
+            $currentCPU = (Get-ChildItem -Path $([GUI_Config]::StatusPath) -Filter "currentCPU_*").Name.Split("_")[1]
         }
         catch {
             $currentCPU = "-"
         }
         $this.GUI_Components.'Measurement'.'Label'.'currentCPU'.text = "CPU: $currentCPU %"
         try {
-            $currentRAM = (Get-ChildItem -Path $([GUI_Config]::StatusPath) -Filter "currentRAM-*").Name.Split("-")[1]
+            $currentRAM = (Get-ChildItem -Path $([GUI_Config]::StatusPath) -Filter "currentRAM_*").Name.Split("_")[1]
         }
         catch {
             $currentRAM = "-"
         }
         $this.GUI_Components.'Measurement'.'Label'.'currentRAM'.text = "RAM: $currentRAM MB"
         try {
-            $peakCPU = (Get-ChildItem -Path $([GUI_Config]::StatusPath) -Filter "peakCPU-*").Name.Split("-")[1]
+            $peakCPU = (Get-ChildItem -Path $([GUI_Config]::StatusPath) -Filter "peakCPU_*").Name.Split("_")[1]
         }
         catch {
             $peakCPU = "-"
         }
         $this.GUI_Components.'Measurement'.'Label'.'peakCPU'.text = "CPU: $peakCPU %"
         try {
-            $peakRAM = (Get-ChildItem -Path $([GUI_Config]::StatusPath) -Filter "peakRAM-*").Name.Split("-")[1]
+            $peakRAM = (Get-ChildItem -Path $([GUI_Config]::StatusPath) -Filter "peakRAM_*").Name.Split("_")[1]
         }
         catch {
             $peakRAM = "-"
@@ -591,7 +591,17 @@ class GUI {
                 'sumRAM'     = 0
                 'counter'    = 0
             }
-
+            try {
+                New-Item -ItemType File -Path "$($Global:EnvironmentalVariables.'StatusPath')/currentCPU_-"
+                New-Item -ItemType File -Path "$($Global:EnvironmentalVariables.'StatusPath')/currentRAM_-"
+                New-Item -ItemType File -Path "$($Global:EnvironmentalVariables.'StatusPath')/peakCPU_-"
+                New-Item -ItemType File -Path "$($Global:EnvironmentalVariables.'StatusPath')/peakRAM_-"
+            }
+            catch {
+                Write-Log -Message "Unable to create files required for resource measurement"
+                return
+            }
+  
             do {
                 Get-Consumption
             }while (-not (Test-Path -Path "$($EnvironmentalVariablesFromClass.'StatusPath')/*$($EnvironmentalVariablesFromClass.'FinalStatusExtension')"))
