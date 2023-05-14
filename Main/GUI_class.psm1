@@ -92,10 +92,10 @@ class GUI {
         ######################################################################
         $this.NewLabel([ComponentType]"Measurement", "CurrentTitle", "Current consumption:", 460, 30)
         $this.NewLabel([ComponentType]"Measurement", "PeakTitle", "Peak consumption:", 460, 120)
-        $this.NewLabel([ComponentType]"Measurement", "currentCPU", "CCPU", 470, 60)
-        $this.NewLabel([ComponentType]"Measurement", "peakCPU", "PCPU", 470, 150)
-        $this.NewLabel([ComponentType]"Measurement", "currentRAM", "CRAM", 470, 90)
-        $this.NewLabel([ComponentType]"Measurement", "peakRAM", "PRAM", 470, 180)
+        $this.NewLabel([ComponentType]"Measurement", "currentCPU", "CPU: - %", 470, 60)
+        $this.NewLabel([ComponentType]"Measurement", "peakCPU", "CPU: - %", 470, 150)
+        $this.NewLabel([ComponentType]"Measurement", "currentRAM", "RAM: - MB", 470, 90)
+        $this.NewLabel([ComponentType]"Measurement", "peakRAM", "RAM: - MB", 470, 180)
 
         ######################################################################
         #------------------------- TextBoxes Section ------------------------#
@@ -519,16 +519,16 @@ class GUI {
         }
         $this.StartProcessing()
         $EnvironmentalVariablesFromClass = @{
-            'LogsPath'                  = ([GUI_Config]::LogsPath)
-            'StatusPath'                = ([GUI_Config]::StatusPath)
-            'LogName'                   = ([GUI_Config]::Execution_LogName)
-            'ProcessingStatusExtension' = (([GUI_Config]::ProcessingStatusExtension).Replace("*", ""))
-            'FinalStatusExtension'      = (([GUI_Config]::FinalStatusExtension).Replace("*", ""))
-            'RecourceConsumption'       = ([GUI_Config]::RecourceConsumption)
-            'ExecutionTimersName'       = ([GUI_Config]::ExecutionTimersName)
-            'RunRawLogName'             = ([GUI_Config]::RunErrors)
+            'LogsPath'                     = ([GUI_Config]::LogsPath)
+            'StatusPath'                   = ([GUI_Config]::StatusPath)
+            'LogName'                      = ([GUI_Config]::Execution_LogName)
+            'ProcessingStatusExtension'    = (([GUI_Config]::ProcessingStatusExtension).Replace("*", ""))
+            'FinalStatusExtension'         = (([GUI_Config]::FinalStatusExtension).Replace("*", ""))
+            'RecourceConsumption'          = ([GUI_Config]::RecourceConsumption)
+            'ExecutionTimersName'          = ([GUI_Config]::ExecutionTimersName)
+            'RunRawLogName'                = ([GUI_Config]::RunErrors)
+            'ResourceConsumption_Interval' = ([GUI_config]::ResourceConsumption_Interval)
         }
-        $Portal = $this.GUI_Components.(([GUI_Config]::InputVariables).'Portal'.'ComponentType').'Box'.'Portal'.text
         try {
             $Username = ($this.GUI_Components.(([GUI_Config]::InputVariables).'Login'.'ComponentType').'Box'.'Login'.text)
             $Password = ConvertTo-SecureString ($this.GUI_Components.(([GUI_Config]::InputVariables).'Password'.'ComponentType').'Box'.'Password'.text) -AsPlainText -Force
@@ -545,30 +545,6 @@ class GUI {
             $IDs = $null 
         }
     
-        Start-Job -Name 'Run' -InitializationScript { Import-Module ./Main/GUI_Functions.psm1 } -ScriptBlock {
-            param(
-                $GUI_Components,
-                $Engines,
-                $CurrentLocation,
-                $EnvironmentalVariablesFromClass,
-                $Portal,
-                [PSCredential] $Credentials
-            )
-            Set-Location $CurrentLocation
-            $Global:Location = $CurrentLocation
-            $Global:Timers = @{}
-            $Global:EnvironmentalVariables = $EnvironmentalVariablesFromClass
-            $Message = "Processing"
-            New-Item -ItemType File -Path "$($Global:EnvironmentalVariables.'StatusPath')/$Message$($Global:EnvironmentalVariables.'ProcessingStatusExtension')" | Out-Null
-
-            Invoke-Run -Portal $Portal -Credentials $Credentials -Engines $Engines
-
-        } -ArgumentList $this.GUI_Components, $this.Engines, 
-        (Get-Location).Path, 
-        $EnvironmentalVariablesFromClass,
-        $Portal,
-        $Credentials
-
         Start-Job -Name 'Measure Consumption' -InitializationScript { Import-Module ./Main/GUI_Functions.psm1 } -ScriptBlock {
             param(
                 $CurrentLocation,
@@ -609,6 +585,30 @@ class GUI {
             Write-ConsumptionSummary
 
         } -ArgumentList (Get-Location).Path, $EnvironmentalVariablesFromClass, $IDs, $this.GUI_Components.'Measurement'
+
+        Start-Job -Name 'Run' -InitializationScript { Import-Module ./Main/GUI_Functions.psm1 } -ScriptBlock {
+            param(
+                $GUI_Components,
+                $Engines,
+                $CurrentLocation,
+                $EnvironmentalVariablesFromClass,
+                $Portal,
+                [PSCredential] $Credentials
+            )
+            Set-Location $CurrentLocation
+            $Global:Location = $CurrentLocation
+            $Global:Timers = @{}
+            $Global:EnvironmentalVariables = $EnvironmentalVariablesFromClass
+            $Message = "Processing"
+            New-Item -ItemType File -Path "$($Global:EnvironmentalVariables.'StatusPath')/$Message$($Global:EnvironmentalVariables.'ProcessingStatusExtension')" | Out-Null
+
+            Invoke-Run -Portal $Portal -Credentials $Credentials -Engines $Engines
+
+        } -ArgumentList $this.GUI_Components, $this.Engines, 
+        (Get-Location).Path, 
+        $EnvironmentalVariablesFromClass,
+        $Portal,
+        $Credentials
 
         while ((Get-Job).State -contains 'Running') {
             [System.Windows.Forms.Application]::DoEvents()

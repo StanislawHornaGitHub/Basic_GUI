@@ -13,9 +13,9 @@ class GUI_Config {
     # Form Variables (Advanced)
     static [hashtable] $InputVariables = @{
         'Portal' = @{
-            'Value' = "MoJ"
-            'Enabled' = $false
-            'ComponentType' = "Manual"  # Default: "Small_GUI"
+            'Value' = ""
+            'Enabled' = $true
+            'ComponentType' = "Small_GUI"  # Default: "Small_GUI"
         }
         'Login' = @{
             'Value' = ""
@@ -28,6 +28,7 @@ class GUI_Config {
             'ComponentType' = "Small_GUI"   # Default: "Small_GUI"
         }
     }
+    
     static [int] $Big_FormSize_X = 480
     static [int] $Big_FormSize_Y = 150
     static [int] $Small_FormSize_X = 480
@@ -56,6 +57,7 @@ class GUI_Config {
     static [string] $ProcessingStatusExtension = "*.status"
     static [string] $FinalStatusExtension = "*.finalstatus"
     static [string] $RecourceConsumption = "Consumption.usage"
+    static [int] $ResourceConsumption_Interval = 200 # Default: 200
     static [string] $GUI_LogName = "GUI.log"
     static [string] $Connection_LogName = "Connection.log"
     static [string] $Execution_LogName = "Execution.log"

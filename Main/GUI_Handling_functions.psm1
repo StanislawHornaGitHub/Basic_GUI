@@ -54,7 +54,6 @@ function Write-Log {
     "$(([System.DateTime]::Now).ToString('HH\:mm\:ss\.fff')) | $Message" | Out-File -FilePath "$($Global:EnvironmentalVariables.'LogsPath')/$($Global:EnvironmentalVariables.'LogName')" -Append
 }
 function Get-Consumption {
-    $delay = 200
     try {
         $StartSnap = (Get-Process powershell | Where-Object { $_.ID -notin $Global:ExistingPSprocesses })
     }
@@ -62,7 +61,7 @@ function Get-Consumption {
         return
     }
     
-    Start-Sleep -Milliseconds $delay
+    Start-Sleep -Milliseconds $($Global:EnvironmentalVariables.'ResourceConsumption_Interval')
     $EndSnap = (Get-Process powershell | Where-Object { $_.ID -notin $Global:ExistingPSprocesses })
     
     $StartCPUtime = 0
@@ -71,7 +70,7 @@ function Get-Consumption {
     $EndCPUtime = 0
     $EndSnap | ForEach-Object { $EndCPUtime += $_.TotalProcessorTime.Milliseconds }
     if ($EndCPUtime -gt $StartCPUtime) {
-        $Global:Consumption.'currentCPU' = [math]::Round((($EndCPUtime - $StartCPUtime) / ($delay * $Global:CPUs) * 100), 2)
+        $Global:Consumption.'currentCPU' = [math]::Round((($EndCPUtime - $StartCPUtime) / ($($Global:EnvironmentalVariables.'ResourceConsumption_Interval') * $Global:CPUs) * 100), 2)
     }
     if ($Global:Consumption.'currentCPU' -gt $Global:Consumption.'peakCPU') {
         $Global:Consumption.'peakCPU' = $Global:Consumption.'currentCPU'
