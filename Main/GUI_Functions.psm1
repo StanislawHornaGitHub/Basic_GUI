@@ -49,7 +49,6 @@ function Invoke-Run {
     [System.DateTime]::ParseExact("-", "yyyy-MM-dd'T'HH:mm:ss", $null) 
     [System.DateTime]::ParseExact("-", "yyyy-MM-dd'T'HH:mm:ss", $null) 
     [System.DateTime]::ParseExact("-", "yyyy-MM-dd'T'HH:mm:ss", $null) 
-    $c = Get-Content -Path "C:\Temp\RAM\aa.csv"
     Write-Status -Message "Microsoft Edge"  
     Start-Sleep -Milliseconds $delay
     Write-Status -Message "Teams"  
@@ -58,7 +57,6 @@ function Invoke-Run {
     Write-Status -Message "Chrome"  
     Start-Sleep -Milliseconds $delay
     
-    Start-Job -name 'test' -ScriptBlock {start-sleep -Seconds 5}
 
     Wait-Job -Name 'test'
     lfjn

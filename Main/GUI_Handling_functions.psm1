@@ -54,7 +54,7 @@ function Write-Log {
     "$(([System.DateTime]::Now).ToString('HH\:mm\:ss\.fff')) | $Message" | Out-File -FilePath "$($Global:EnvironmentalVariables.'LogsPath')/$($Global:EnvironmentalVariables.'LogName')" -Append
 }
 function Get-Consumption {
-    $delay = 2000
+    $delay = 200
     try {
         $StartSnap = (Get-Process powershell | Where-Object { $_.ID -notin $Global:ExistingPSprocesses })
     }
