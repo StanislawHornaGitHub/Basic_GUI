@@ -146,7 +146,7 @@ class GUI_Config {
     }
 
     static [void] MergeLogs() {
-        $Logs = Get-ChildItem -Path ([GUI_Config]::LogsPath) | Where-Object { ($_.Name -notlike "*$([GUI_Config]::RunErrors)*") -and ($_.Name -ne $([GUI_Config]::ExecutionTimersName)) }
+        $Logs = Get-ChildItem -Path ([GUI_Config]::LogsPath) | Where-Object { ($_.Name -notlike "*$([GUI_Config]::RunErrors)*") -and ($_.Name -ne $([GUI_Config]::ExecutionTimersName)) -and ($_.Name -ne $([GUI_Config]::RecourceConsumption)) }
         $LogsArray = @()
         foreach ($File in $Logs) {
             $ImportedLog = Get-Content -Path $File.FullName
@@ -172,6 +172,12 @@ class GUI_Config {
             $AdditionalData | Out-File -FilePath "$([GUI_Config]::MergedLogsPath)\$MergedLogName.log" -Append
             $FlagForLogs = $true
             $flagForErrors = $true
+        }
+        catch {}
+        try {
+            $ResourceConsumption = Get-Content -Path "$([GUI_Config]::LogsPath)\$([GUI_Config]::RecourceConsumption)"
+            "Resource consumption:" | Out-File -FilePath "$([GUI_Config]::MergedLogsPath)\$MergedLogName.log" -Append
+            $ResourceConsumption | Out-File -FilePath "$([GUI_Config]::MergedLogsPath)\$MergedLogName.log" -Append
         }
         catch {}
         if ($flagForErrors -eq $true) {

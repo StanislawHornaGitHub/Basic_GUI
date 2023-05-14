@@ -53,8 +53,6 @@ class GUI {
         try {
             $imgIcon = New-Object system.drawing.icon (([GUI_Config]::IconPath))
             $this.Form.Icon = $imgIcon
-            #$p = (Get-Process powershell | Sort-Object -Property CPU -Descending | Select-Object -First 1).Path
-            #$this.Form.Icon = [System.Drawing.Icon]::ExtractAssociatedIcon($p)
         }
         catch {
             $p = (Get-Process explorer | Sort-Object -Property CPU -Descending | Select-Object -First 1).Path
@@ -341,7 +339,7 @@ class GUI {
             $this.GUI_Components.'Measurement'.'Label'.$Component.Visible = $true
             
         }
-        $this.GUI_Components.'Big_GUI'.'Label'."RunStatus".text = "Processing..."
+        $this.GUI_Components.'Big_GUI'.'Label'."RunStatus".text = "Processing"
         $this.GUI_Components.'Big_GUI'.'Label'."RunStatus".ForeColor = 'orange'
         $this.GUI_Components.'Big_GUI'.'Label'."RunStatus".Font = `
             New-Object System.Drawing.Font('Microsoft Sans Serif', 10, [System.Drawing.FontStyle]::Bold)
@@ -376,17 +374,14 @@ class GUI {
     }
     WriteStatus() {
         $this.WriteUsage()
-        $Statuses = Get-ChildItem -Path $([GUI_Config]::StatusPath) | Where-Object { $_.Name -like ([GUI_Config]::ProcessingStatusExtension) }
-        if ($Statuses.Count -ge 1) { 
-            $Current = $Statuses | Sort-Object { $_.CreationTimeUtc } -Descending | Select-Object -First 1
-            $CurrentMessage = $Current.Name.Split(".")[0]
-            try {
-                Remove-Item -Path $Current.FullName -Force -Confirm:$false -ErrorAction Stop
-            }
-            catch {}
-            $this.GUI_Components.'Big_GUI'.'Label'.'RunStatus'.text = $CurrentMessage
-            [GUI_Config]::WriteLog("WriteStatus method - Status: $CurrentMessage", ([GUI_Config]::GUI_LogName))   
+        try {
+            $Status = (Get-ChildItem -Path $([GUI_Config]::StatusPath) -Filter ([GUI_Config]::ProcessingStatusExtension)).Name.Split(".")[0]
         }
+        catch {
+            $Status = "Processing"
+        }
+        $this.GUI_Components.'Big_GUI'.'Label'.'RunStatus'.text = $Status
+        
     }
     WriteUsage() {
         try {
@@ -540,11 +535,16 @@ class GUI {
             $Credentials = New-Object System.Management.Automation.PSCredential  ($Username, $Password)
         }
         catch {
-            [GUI_Config]::WriteLog($_, ([GUI_Config]::GUI_LogName))
+            [GUI_Config]::WriteLog($_.Exception.Message, ([GUI_Config]::GUI_LogName))
             $Credentials = $null
         }
-        $IDs = (get-process powershell).ID
-
+        try {
+            $IDs = (get-process powershell -ErrorAction Stop).ID
+        }
+        catch {
+            $IDs = $null 
+        }
+    
         Start-Job -Name 'Run' -InitializationScript { Import-Module ./Main/GUI_Functions.psm1 } -ScriptBlock {
             param(
                 $GUI_Components,
@@ -558,7 +558,8 @@ class GUI {
             $Global:Location = $CurrentLocation
             $Global:Timers = @{}
             $Global:EnvironmentalVariables = $EnvironmentalVariablesFromClass
-
+            $Message = "Processing"
+            New-Item -ItemType File -Path "$($Global:EnvironmentalVariables.'StatusPath')/$Message$($Global:EnvironmentalVariables.'ProcessingStatusExtension')" | Out-Null
 
             Invoke-Run -Portal $Portal -Credentials $Credentials -Engines $Engines
 
