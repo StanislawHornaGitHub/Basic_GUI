@@ -11,6 +11,7 @@ class GUI_Config {
     static [string] $RunButton = "Prepare Report"
 
     # Form Variables (Advanced)
+    static [string] $PreDefinedEnvironment = ""
     static [hashtable] $InputVariables = @{
         'Portal' = @{
             'Value' = ""
