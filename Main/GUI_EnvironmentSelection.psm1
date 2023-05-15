@@ -4,14 +4,18 @@ class GUI_Environment {
         'MoJ' = @{
             'FITS' = @('engine-1')
             'MoJo' = @('engine-10')
-            'All' = @('engine-1','engine-10')
+            'All'  = @('engine-1', 'engine-10')
         }
     }
 
     static [System.Object] GUI_EnvironmentSelection($Engines, [string]$PortalFQDN) {
-        [GUI_Config]::WriteLog("Environment Selection invoked - $PortalFQDN",([GUI_Config]::GUI_LogName))
+        [GUI_Config]::WriteLog("Environment Selection invoked - $PortalFQDN", ([GUI_Config]::GUI_LogName))
         if (-not (([GUI_Environment]::PortalsToFilter).ContainsKey($PortalFQDN))) {
-            [GUI_Config]::WriteLog("Nothing to filter",([GUI_Config]::GUI_LogName))
+            [GUI_Config]::WriteLog("Nothing to filter", ([GUI_Config]::GUI_LogName))
+            return $Engines
+        }
+        if (([GUI_config]::PreDefinedEnvironment).ToCharArray().count -gt 1) {
+            $Engines = [GUI_Environment]::FilterEngines($Engines, $PortalFQDN, ([GUI_config]::PreDefinedEnvironment))
             return $Engines
         }
         $Global:Selection = ""
@@ -75,8 +79,9 @@ class GUI_Environment {
         $Engines = [GUI_Environment]::FilterEngines($Engines, $PortalFQDN, $Global:Selection)
         return $Engines
     }
-    static [hashtable] FilterEngines([hashtable]$Engines, [string]$PortalFQDN, [string]$Environment) {
-        [GUI_Config]::WriteLog("Filtering Engines invoked ($PortalFQDN ; $Environment)",([GUI_Config]::GUI_LogName))
+    static [System.Object] FilterEngines($Engines, [string]$PortalFQDN, [string]$Environment) {
+        [GUI_Config]::WriteLog("Filtering Engines invoked ($PortalFQDN ; $Environment)", ([GUI_Config]::GUI_LogName))
+        $Engines = $Engines | Where-Object { $_.name -in $(([GUI_Environment]::PortalsToFilter).$PortalFQDN.$Environment) }
         return $Engines
     }
 }
