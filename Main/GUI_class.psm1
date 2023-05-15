@@ -125,7 +125,7 @@ class GUI {
         $this.GUI_Components.'Big_GUI'.'Button'.'Run'.ForeColor = 'green'
         $this.GUI_Components.'Big_GUI'.'Button'.'Run'.Font = New-Object System.Drawing.Font('Microsoft Sans Serif', 10, [System.Drawing.FontStyle]::Bold)
 
-        $this.NewProcessingBar([ComponentType]"Big_GUI", 'Processing', 150, 202, 300, 15, 40)
+        #$this.NewProcessingBar([ComponentType]"Big_GUI", 'Processing', 150, 202, 300, 15, 40)
         
         if ((([GUI_Config]::InputVariables).'Password'.Enabled) -eq $true) {
             $this.SmallGUI()
@@ -343,12 +343,12 @@ class GUI {
         $this.GUI_Components.'Big_GUI'.'Label'."RunStatus".ForeColor = 'orange'
         $this.GUI_Components.'Big_GUI'.'Label'."RunStatus".Font = `
             New-Object System.Drawing.Font('Microsoft Sans Serif', 10, [System.Drawing.FontStyle]::Bold)
-        $this.GUI_Components.'Big_GUI'.'ProgressBar'.'Processing'.visible = $true
+        #$this.GUI_Components.'Big_GUI'.'ProgressBar'.'Processing'.visible = $true
         [GUI_Config]::CleanupStatuses()
     }
     ShowExecutionStatus() {
         [GUI_Config]::WriteLog("ShowExecutionStatus method", ([GUI_Config]::GUI_LogName))
-        $this.GUI_Components.'Big_GUI'.'ProgressBar'.'Processing'.visible = $false
+        #$this.GUI_Components.'Big_GUI'.'ProgressBar'.'Processing'.visible = $false
         $Statuses = Get-ChildItem -Path $([GUI_Config]::StatusPath) | Where-Object { $_.Name -like ([GUI_Config]::FinalStatusExtension) }
         if ($Statuses.Count -ge 1) { 
             $Current = $Statuses | Sort-Object { $_.CreationTimeUtc } -Descending | Select-Object -First 1
@@ -610,11 +610,14 @@ class GUI {
         $Portal,
         $Credentials
 
-        while ((Get-Job).State -contains 'Running') {
+        while ((Get-Job -Name "Run").State -eq 'Running') {
             [System.Windows.Forms.Application]::DoEvents()
-            $this.WriteStatus()
+            #$this.WriteStatus()
         }
-
+        while ((Get-Job -Name "Measure Consumption").State -eq 'Running') {
+            [System.Windows.Forms.Application]::DoEvents()
+            #$this.WriteStatus()
+        }
         $job = Get-Job -Name 'Run'
         [GUI_Config]::SaveJobError(($job.ChildJobs.Error))
         Get-Job | Remove-Job

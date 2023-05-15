@@ -56,9 +56,17 @@ function Invoke-Run {
     Start-Sleep -Milliseconds $delay
     Write-Status -Message "Chrome"  
     Start-Sleep -Milliseconds $delay
-    
+    $csv = Import-Csv -Path "C:\Temp\aa.csv"
+    for ($i = 1; $i -lt $csv.Count; $i++) {
+        $thisDate = $csv[$i]."Last seen"
+        $thatDate = $csv[($i - 1)]."Last seen"
+        if([datetime]::ParseExact($thisDate,"yyyy-MM-dd'T'HH:mm:ss",$null) -gt
+        [datetime]::ParseExact($thatDate,"yyyy-MM-dd'T'HH:mm:ss",$null)){
+            $csv[$i]."Device name" | Out-File "./test.csv" -Append
+        }
+    }
 
-    Wait-Job -Name 'test'
+ 
     lfjn
     ldk
     Write-Status -Message "End"  
