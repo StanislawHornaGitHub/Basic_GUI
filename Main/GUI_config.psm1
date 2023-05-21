@@ -13,23 +13,26 @@ class GUI_Config {
     # Form Variables (Advanced)
     static [string] $PreDefinedEnvironment = ""
     static [hashtable] $InputVariables = @{
-        'Portal' = @{
-            'Value' = ""
-            'Enabled' = $true
+        'Portal'   = @{
+            'Value'         = ""
+            'Enabled'       = $true
             'ComponentType' = "Small_GUI"  # Default: "Small_GUI"
         }
-        'Login' = @{
-            'Value' = ""
-            'Enabled' = $true
+        'Login'    = @{
+            'Value'         = ""
+            'Enabled'       = $true
             'ComponentType' = "Small_GUI"   # Default: "Small_GUI"
         }
         'Password' = @{
-            'Value' = ""
-            'Enabled' = $true
+            'Value'         = ""
+            'Enabled'       = $true
             'ComponentType' = "Small_GUI"   # Default: "Small_GUI"
         }
     }
-    
+    static [scriptblock] $InvokeRUN = {
+        Import-Module ./Main/GUI_Functions.psm1
+        Invoke-Run -Portal $SharedArea.Vars.Portal -Credentials $SharedArea.Vars.Credentials -Engines $SharedArea.Vars.Engines
+    }
     static [int] $Big_FormSize_X = 480
     static [int] $Big_FormSize_Y = 150
     static [int] $Small_FormSize_X = 480
@@ -130,14 +133,14 @@ class GUI_Config {
     static [void] SaveJobError($JobErrors) {
         $FilteredErrors = @()
         $JobErrors = $JobErrors | Sort-Object -Unique
-        foreach($CurrentError in $JobErrors) {
+        foreach ($CurrentError in $JobErrors) {
             $flag = $false
-            foreach($ToIgnore in ([GUI_Config]::ErrorsToIgnore)){
-                if($CurrentError.Exception.Message -like $ToIgnore){
+            foreach ($ToIgnore in ([GUI_Config]::ErrorsToIgnore)) {
+                if ($CurrentError.Exception.Message -like $ToIgnore) {
                     $flag = $true
                 }
             }
-            if($flag -eq $false){
+            if ($flag -eq $false) {
                 $FilteredErrors += $CurrentError
             }
         }
@@ -215,7 +218,7 @@ class GUI_Config {
         }
     }
 
-    static [void] CleanupStatuses(){
+    static [void] CleanupStatuses() {
         $Statuses = Get-ChildItem -Path $([GUI_Config]::StatusPath) 
         if ($Statuses.Count -ge 1) {
             $Statuses | ForEach-Object {

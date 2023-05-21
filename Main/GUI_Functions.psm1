@@ -5,10 +5,6 @@
     
     Cmdlet: Write-Log -Message "Information will be saved in logs, but user will not be informed"
 #>
-
-Add-Type -AssemblyName System.Windows.Forms
-[System.Windows.Forms.Application]::EnableVisualStyles()
-[void] [System.Reflection.Assembly]::LoadWithPartialName("System.Drawing")
 Import-Module '.\Main\GUI_Handling_functions.psm1'
 function Invoke-Connection {
     param(
@@ -56,15 +52,15 @@ function Invoke-Run {
     Start-Sleep -Milliseconds $delay
     Write-Status -Message "Chrome"  
     Start-Sleep -Milliseconds $delay
-    $csv = Import-Csv -Path "C:\Temp\aa.csv"
-    for ($i = 1; $i -lt $csv.Count; $i++) {
-        $thisDate = $csv[$i]."Last seen"
-        $thatDate = $csv[($i - 1)]."Last seen"
-        if([datetime]::ParseExact($thisDate,"yyyy-MM-dd'T'HH:mm:ss",$null) -gt
-        [datetime]::ParseExact($thatDate,"yyyy-MM-dd'T'HH:mm:ss",$null)){
-            $csv[$i]."Device name" | Out-File "./test.csv" -Append
-        }
-    }
+    # $csv = Import-Csv -Path "C:\Temp\aa.csv"
+    # for ($i = 1; $i -lt $csv.Count; $i++) {
+    #     $thisDate = $csv[$i]."Last seen"
+    #     $thatDate = $csv[($i - 1)]."Last seen"
+    #     if([datetime]::ParseExact($thisDate,"yyyy-MM-dd'T'HH:mm:ss",$null) -gt
+    #     [datetime]::ParseExact($thatDate,"yyyy-MM-dd'T'HH:mm:ss",$null)){
+    #         $csv[$i]."Device name" | Out-File "./test.csv" -Append
+    #     }
+    # }
 
  
     lfjn

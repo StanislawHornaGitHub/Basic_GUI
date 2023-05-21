@@ -1,5 +1,6 @@
 using module './Main/GUI_config.psm1'
 using module './Main/GUI_EnvironmentSelection.psm1'
+using module './Main/Runspace_class.psm1'
 class GUI {
     # Variables
     $Environment
@@ -36,6 +37,7 @@ class GUI {
             'ProgressBar' = @{}
         }
     }
+    [RunSpaceArea]$Runspaces
     GUI() {
         [GUI_Config]::StartInstance()
         [GUI_Config]::WriteLog("GUI constructor Invoked", ([GUI_Config]::GUI_LogName))
@@ -58,7 +60,7 @@ class GUI {
             $p = (Get-Process explorer | Sort-Object -Property CPU -Descending | Select-Object -First 1).Path
             $this.Form.Icon = [System.Drawing.Icon]::ExtractAssociatedIcon($p)
         }
-        $this.Form.Add_FormClosing({ [GUI_Config]::CloseInstance() })
+        $this.Form.Add_FormClosing({[GUI_Config]::CloseInstance()})
         ######################################################################
         #-------------------------- Labels Section --------------------------#
         ######################################################################
@@ -125,7 +127,7 @@ class GUI {
         $this.GUI_Components.'Big_GUI'.'Button'.'Run'.ForeColor = 'green'
         $this.GUI_Components.'Big_GUI'.'Button'.'Run'.Font = New-Object System.Drawing.Font('Microsoft Sans Serif', 10, [System.Drawing.FontStyle]::Bold)
 
-        #$this.NewProcessingBar([ComponentType]"Big_GUI", 'Processing', 150, 202, 300, 15, 40)
+        $this.NewProcessingBar([ComponentType]"Big_GUI", 'Processing', 150, 202, 300, 15, 40)
         
         if ((([GUI_Config]::InputVariables).'Password'.Enabled) -eq $true) {
             $this.SmallGUI()
@@ -133,7 +135,7 @@ class GUI {
         else {
             $this.BigGUI()
         }
-        
+        $this.Runspaces = [RunSpaceArea]::New(@('InvokeRun'), @([GUI_config]::InvokeRUN))
         $this.Form.ShowDialog()
     }
     NewLabel(
@@ -337,51 +339,35 @@ class GUI {
         $this.LockInputs()
         foreach ($Component in $this.GUI_Components.'Measurement'.'Label'.Keys) {
             $this.GUI_Components.'Measurement'.'Label'.$Component.Visible = $true
-            
         }
         $this.GUI_Components.'Big_GUI'.'Label'."RunStatus".text = "Processing"
         $this.GUI_Components.'Big_GUI'.'Label'."RunStatus".ForeColor = 'orange'
         $this.GUI_Components.'Big_GUI'.'Label'."RunStatus".Font = `
             New-Object System.Drawing.Font('Microsoft Sans Serif', 10, [System.Drawing.FontStyle]::Bold)
-        #$this.GUI_Components.'Big_GUI'.'ProgressBar'.'Processing'.visible = $true
-        [GUI_Config]::CleanupStatuses()
+        $this.GUI_Components.'Big_GUI'.'ProgressBar'.'Processing'.visible = $true
     }
-    ShowExecutionStatus() {
-        [GUI_Config]::WriteLog("ShowExecutionStatus method", ([GUI_Config]::GUI_LogName))
-        #$this.GUI_Components.'Big_GUI'.'ProgressBar'.'Processing'.visible = $false
-        $Statuses = Get-ChildItem -Path $([GUI_Config]::StatusPath) | Where-Object { $_.Name -like ([GUI_Config]::FinalStatusExtension) }
-        if ($Statuses.Count -ge 1) { 
-            $Current = $Statuses | Sort-Object { $_.CreationTimeUtc } -Descending | Select-Object -First 1
-            $CurrentMessage = $Current.Name.Split(".")[0]
-            if ($CurrentMessage -eq "Success") {
-                $this.GUI_Components.'Big_GUI'.'Label'."RunStatus".text = ($CurrentMessage + " ")
-                $this.GUI_Components.'Big_GUI'.'Label'."RunStatus".ForeColor = 'green'
-                $this.GUI_Components.'Big_GUI'.'Label'."RunStatus".Font = `
-                    New-Object System.Drawing.Font('Microsoft Sans Serif', 12, [System.Drawing.FontStyle]::Bold)
-            }
-            else {
-                $this.GUI_Components.'Big_GUI'.'Label'."RunStatus".text = ($CurrentMessage + " ")
-                $this.GUI_Components.'Big_GUI'.'Label'."RunStatus".ForeColor = 'red'
-                $this.GUI_Components.'Big_GUI'.'Label'."RunStatus".Font = `
-                    New-Object System.Drawing.Font('Microsoft Sans Serif', 12, [System.Drawing.FontStyle]::Bold)
-            }
-            [GUI_Config]::WriteLog("RUN execution status: $CurrentMessage", ([GUI_Config]::GUI_LogName))
+    ShowExecutionStatus([String]$CurrentMessage) {
+        #[GUI_Config]::WriteLog("ShowExecutionStatus method", ([GUI_Config]::GUI_LogName))
+        $this.GUI_Components.'Big_GUI'.'ProgressBar'.'Processing'.visible = $false
+        if ($CurrentMessage -eq "Success") {
+            $this.GUI_Components.'Big_GUI'.'Label'."RunStatus".text = ($CurrentMessage + " ")
+            $this.GUI_Components.'Big_GUI'.'Label'."RunStatus".ForeColor = 'green'
+            $this.GUI_Components.'Big_GUI'.'Label'."RunStatus".Font = `
+                New-Object System.Drawing.Font('Microsoft Sans Serif', 12, [System.Drawing.FontStyle]::Bold)
         }
-        [GUI_Config]::CleanupStatuses()
-        $this.GUI_Components.'Measurement'.'Label'.'currentCPU'.text = "CPU: - %"
-        $this.GUI_Components.'Measurement'.'Label'.'currentRAM'.text = "RAM: - MB"
+        else {
+            $this.GUI_Components.'Big_GUI'.'Label'."RunStatus".text = ($CurrentMessage + " ")
+            $this.GUI_Components.'Big_GUI'.'Label'."RunStatus".ForeColor = 'red'
+            $this.GUI_Components.'Big_GUI'.'Label'."RunStatus".Font = `
+                New-Object System.Drawing.Font('Microsoft Sans Serif', 12, [System.Drawing.FontStyle]::Bold)
+        }
         $this.UnlockInputs()
+        #$this.GUI_Components.'Measurement'.'Label'.'currentCPU'.text = "CPU: - %"
+        #$this.GUI_Components.'Measurement'.'Label'.'currentRAM'.text = "RAM: - MB"
+        #[GUI_Config]::WriteLog("RUN execution status: $CurrentMessage", ([GUI_Config]::GUI_LogName))
     }
-    WriteStatus() {
-        $this.WriteUsage()
-        try {
-            $Status = (Get-ChildItem -Path $([GUI_Config]::StatusPath) -Filter ([GUI_Config]::ProcessingStatusExtension)).Name.Split(".")[0]
-        }
-        catch {
-            $Status = "Processing"
-        }
+    WriteStatus([String]$Status) {
         $this.GUI_Components.'Big_GUI'.'Label'.'RunStatus'.text = $Status
-        
     }
     WriteUsage() {
         try {
@@ -538,6 +524,19 @@ class GUI {
             [GUI_Config]::WriteLog($_.Exception.Message, ([GUI_Config]::GUI_LogName))
             $Credentials = $null
         }
+        $InputVariables = @{
+            'CurrentLocation' = $((Get-Location).Path)
+            'EnvClass'        = $EnvironmentalVariablesFromClass
+            'Timers'          = @{}
+            'Portal'          = $Portal
+            'Credentials'     = $Credentials
+            'Engines'         = $this.Engines
+            'GUI'             = $this 
+        }
+        $this.Runspaces.AddVariablesToSharedArea($InputVariables)
+        $this.Runspaces.StartAllJobs()
+        # Old Measurement Consumption
+        <#
         try {
             $IDs = (get-process powershell -ErrorAction Stop).ID
         }
@@ -585,42 +584,6 @@ class GUI {
             Write-ConsumptionSummary
 
         } -ArgumentList (Get-Location).Path, $EnvironmentalVariablesFromClass, $IDs, $this.GUI_Components.'Measurement'
-
-        Start-Job -Name 'Run' -InitializationScript { Import-Module ./Main/GUI_Functions.psm1 } -ScriptBlock {
-            param(
-                $GUI_Components,
-                $Engines,
-                $CurrentLocation,
-                $EnvironmentalVariablesFromClass,
-                $Portal,
-                [PSCredential] $Credentials
-            )
-            Set-Location $CurrentLocation
-            $Global:Location = $CurrentLocation
-            $Global:Timers = @{}
-            $Global:EnvironmentalVariables = $EnvironmentalVariablesFromClass
-            $Message = "Processing"
-            New-Item -ItemType File -Path "$($Global:EnvironmentalVariables.'StatusPath')/$Message$($Global:EnvironmentalVariables.'ProcessingStatusExtension')" | Out-Null
-
-            Invoke-Run -Portal $Portal -Credentials $Credentials -Engines $Engines
-
-        } -ArgumentList $this.GUI_Components, $this.Engines, 
-        (Get-Location).Path, 
-        $EnvironmentalVariablesFromClass,
-        $Portal,
-        $Credentials
-
-        while ((Get-Job -Name "Run").State -eq 'Running') {
-            [System.Windows.Forms.Application]::DoEvents()
-            #$this.WriteStatus()
-        }
-        while ((Get-Job -Name "Measure Consumption").State -eq 'Running') {
-            [System.Windows.Forms.Application]::DoEvents()
-            #$this.WriteStatus()
-        }
-        $job = Get-Job -Name 'Run'
-        [GUI_Config]::SaveJobError(($job.ChildJobs.Error))
-        Get-Job | Remove-Job
-        $this.ShowExecutionStatus()
+        #>
     }
 }

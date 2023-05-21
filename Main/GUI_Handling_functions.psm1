@@ -1,18 +1,21 @@
+using module '.\GUI_config.psm1'
+using module '.\GUI_class.psm1'
+Add-Type -AssemblyName System.Windows.Forms
+[System.Windows.Forms.Application]::EnableVisualStyles()
+[void] [System.Reflection.Assembly]::LoadWithPartialName("System.Drawing")
 function Write-Status {
     param (
         [String]$Message,
         [Switch]$Final
     )
     if ($Final) {
-        New-Item -ItemType File -Path "$($Global:EnvironmentalVariables.'StatusPath')/$Message$($Global:EnvironmentalVariables.'FinalStatusExtension')" | Out-Null
-        "$(([System.DateTime]::Now).ToString('HH\:mm\:ss\.fff')) | $Message" | Out-File -FilePath "$($Global:EnvironmentalVariables.'LogsPath')/$($Global:EnvironmentalVariables.'LogName')" -Append
+        $SharedArea.vars.GUI.ShowExecutionStatus($Message)
+        #$SharedArea.vars.GUI.UnlockInputs()
+        
     }
     else {
-        Get-ChildItem -Path $($Global:EnvironmentalVariables.'StatusPath') -Filter "*$($Global:EnvironmentalVariables.'ProcessingStatusExtension')" | `
-            Rename-Item -NewName "$Message$($Global:EnvironmentalVariables.'ProcessingStatusExtension')"
-
-        # New-Item -ItemType File -Path "$($Global:EnvironmentalVariables.'StatusPath')/$Message$($Global:EnvironmentalVariables.'ProcessingStatusExtension')" | Out-Null
-        # "$(([System.DateTime]::Now).ToString('HH\:mm\:ss\.fff')) | $Message" | Out-File -FilePath "$($Global:EnvironmentalVariables.'LogsPath')/$($Global:EnvironmentalVariables.'LogName')" -Append
+        $SharedArea.vars.GUI.WriteStatus($Message)
+        # $SharedArea.vars.GUI.GUI_Components.'Big_GUI'.'Label'.'RunStatus'.text = $Message
     }
     if (($Global:Timers.Keys.Count -eq 0) -or ($null -eq $Global:Timers)) {
         $StopWatchOverall = [System.Diagnostics.Stopwatch]::StartNew()
@@ -105,8 +108,8 @@ function Write-Consumption {
 function Write-ConsumptionSummary {
     "peakCPU: $($Global:Consumption.'peakCPU') %" | Out-File -FilePath "$($Global:EnvironmentalVariables.'LogsPath')/$($Global:EnvironmentalVariables.'RecourceConsumption')" -Append
     "peakRAM: $($Global:Consumption.'peakRAM') MB" | Out-File -FilePath "$($Global:EnvironmentalVariables.'LogsPath')/$($Global:EnvironmentalVariables.'RecourceConsumption')" -Append
-    $AverageCPU = [math]::Round(($Global:Consumption.'sumCPU') / ($Global:Consumption.'counter'),2)
-    $AverageRAM = [math]::Round(($Global:Consumption.'sumRAM') / ($Global:Consumption.'counter'),1)
+    $AverageCPU = [math]::Round(($Global:Consumption.'sumCPU') / ($Global:Consumption.'counter'), 2)
+    $AverageRAM = [math]::Round(($Global:Consumption.'sumRAM') / ($Global:Consumption.'counter'), 1)
     "AverageCPU: $AverageCPU %" | Out-File -FilePath "$($Global:EnvironmentalVariables.'LogsPath')/$($Global:EnvironmentalVariables.'RecourceConsumption')" -Append
     "AverageRAM: $AverageRAM MB" | Out-File -FilePath "$($Global:EnvironmentalVariables.'LogsPath')/$($Global:EnvironmentalVariables.'RecourceConsumption')" -Append
     $EndTime = (Get-ChildItem -Path $($Global:EnvironmentalVariables.'StatusPath') -Filter "*$($Global:EnvironmentalVariables.'FinalStatusExtension')" | Select-Object -First 1).LastAccessTime.ToString('HH\:mm\:ss\.fff')
