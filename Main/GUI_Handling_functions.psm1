@@ -9,18 +9,29 @@ function Write-Status {
         [Switch]$Final
     )
     if ($Final) {
+        $SharedArea.vars.LastExecution.EndTime = (Get-Date).ToString('HH\:mm\:ss\.fff')
+        $SharedArea.vars.LastExecution.Message = $Message
+        Write-Log -Message $Message
+        $SharedArea.PowerShellInstances.Measurement.Stop()
+        Write-ConsumptionSummary
         $SharedArea.vars.GUI.ShowExecutionStatus($Message)
-        #$SharedArea.vars.GUI.UnlockInputs()
-        
+        $SharedArea.vars.GUI.UnlockInputs()
     }
     else {
-        $SharedArea.vars.GUI.WriteStatus($Message)
-        # $SharedArea.vars.GUI.GUI_Components.'Big_GUI'.'Label'.'RunStatus'.text = $Message
+        $MessageLength = $Message.Length
+        if ($MessageLength -lt 46) {
+            $CharsToDisplay = $MessageLength
+        }
+        else {
+            $CharsToDisplay = 46
+        }
+        $SharedArea.vars.GUI.WriteStatus($Message.Substring(0, $CharsToDisplay))
+        Write-Log -Message $Message
     }
-    if (($Global:Timers.Keys.Count -eq 0) -or ($null -eq $Global:Timers)) {
+    if (($SharedArea.vars.Timers.Keys.Count -eq 0) -or ($null -eq $SharedArea.vars.Timers)) {
         $StopWatchOverall = [System.Diagnostics.Stopwatch]::StartNew()
         $StopWatchMessage = [System.Diagnostics.Stopwatch]::StartNew()
-        $Global:Timers = @{
+        $SharedArea.vars.Timers = @{
             'Order'       = @('Overall proccessing time', $Message)
             'Stopwatches' = @{
                 'Overall proccessing time' = $StopWatchOverall
@@ -29,24 +40,24 @@ function Write-Status {
         }
     }
     elseif ($Final) {
-        foreach ($Watch in $Global:Timers.'Stopwatches'.Keys) {
+        foreach ($Watch in $SharedArea.vars.Timers.'Stopwatches'.Keys) {
             if ($Watch.IsRunning) {
-                $Global:Timers.'Stopwatches'.$Watch.Stop()
+                $SharedArea.vars.Timers.'Stopwatches'.$Watch.Stop()
             }
         }
-        foreach ($name in $Global:Timers.'Order') {
-            $Time = $Global:Timers.'Stopwatches'.$name.Elapsed.ToString("hh\:mm\:ss\.fff")
-            "$name - $Time" | Out-File -FilePath "$($Global:EnvironmentalVariables.'LogsPath')/$($Global:EnvironmentalVariables.'ExecutionTimersName')" -Append
+        foreach ($name in $SharedArea.vars.Timers.'Order') {
+            $Time = $SharedArea.vars.Timers.'Stopwatches'.$name.Elapsed.ToString("hh\:mm\:ss\.fff")
+            "$name - $Time" | Out-File -FilePath "$($SharedArea.vars.EnvClass.'LogsPath')/$($SharedArea.vars.EnvClass.'ExecutionTimersName')" -Append
         }
-        $EndTime = (Get-ChildItem -Path $($Global:EnvironmentalVariables.'StatusPath') -Filter "*$($Global:EnvironmentalVariables.'FinalStatusExtension')" | Select-Object -First 1).LastAccessTime.ToString('HH\:mm\:ss\.fff')
-        "Execution status: $Message ; End time: $EndTime`n" | Out-File -FilePath "$($Global:EnvironmentalVariables.'LogsPath')/$($Global:EnvironmentalVariables.'ExecutionTimersName')" -Append
+        $EndTime = $SharedArea.vars.LastExecution.EndTime
+        "Execution status: $Message ; End time: $EndTime`n" | Out-File -FilePath "$($SharedArea.vars.EnvClass.'LogsPath')/$($SharedArea.vars.EnvClass.'ExecutionTimersName')" -Append
     }
     else {
         $StopWatchMessage = [System.Diagnostics.Stopwatch]::StartNew()
-        $StopWatchToPause = ($Global:Timers.'Order')[(($Global:Timers.'Order').count - 1)]
-        $Global:Timers.'Stopwatches'.$StopWatchToPause.Stop()
-        $Global:Timers.'Order' += "$Message"
-        $Global:Timers.'Stopwatches'.Add($Message, $StopWatchMessage)
+        $StopWatchToPause = ($SharedArea.vars.Timers.'Order')[(($SharedArea.vars.Timers.'Order').count - 1)]
+        $SharedArea.vars.Timers.'Stopwatches'.$StopWatchToPause.Stop()
+        $SharedArea.vars.Timers.'Order' += "$Message"
+        $SharedArea.vars.Timers.'Stopwatches'.Add($Message, $StopWatchMessage)
     }
     
 }
@@ -54,65 +65,69 @@ function Write-Log {
     param (
         [String]$Message
     )
-    "$(([System.DateTime]::Now).ToString('HH\:mm\:ss\.fff')) | $Message" | Out-File -FilePath "$($Global:EnvironmentalVariables.'LogsPath')/$($Global:EnvironmentalVariables.'LogName')" -Append
+    "$(([System.DateTime]::Now).ToString('HH\:mm\:ss\.fff')) | $Message" | Out-File -FilePath "$($SharedArea.vars.EnvClass.'LogsPath')/$($SharedArea.vars.EnvClass.'LogName')" -Append
+}
+function Write-Catch {
+    param (
+        [String]$Message,
+        [switch]$ThrowRUN
+    )
+    if ($ThrowRUN) {
+        Write-Status -Message $Message -Final
+        throw
+    }
+    else {
+        Write-Status -Message $Message
+    }
 }
 function Get-Consumption {
-    try {
-        $StartSnap = (Get-Process powershell | Where-Object { $_.ID -notin $Global:ExistingPSprocesses })
-    }
-    catch {
-        return
+    param(
+        $ID,
+        $CPUs
+    )
+    $EndSnap = (Get-Process -Id $ID)
+    
+    $StartCPUtime = ((Get-Process -Id $ID).TotalProcessorTime.Ticks)
+
+    Start-Sleep -Milliseconds $($SharedArea.vars.EnvClass.'ResourceConsumption_Interval')
+    $EndSnap = (Get-Process -Id $ID)
+    $EndCPUtime = ($EndSnap.TotalProcessorTime.Ticks)
+
+    $CurrentCPU = [math]::Round(((($EndCPUtime - $StartCPUtime) / ($($SharedArea.vars.EnvClass.'ResourceConsumption_Interval') * $CPUs * 10000)) * 100), 2)
+    
+    if($CurrentCPU -gt 0){
+        $SharedArea.vars.ConsumptionMeasurement.'currentCPU' = $CurrentCPU 
     }
     
-    Start-Sleep -Milliseconds $($Global:EnvironmentalVariables.'ResourceConsumption_Interval')
-    $EndSnap = (Get-Process powershell | Where-Object { $_.ID -notin $Global:ExistingPSprocesses })
-    
-    $StartCPUtime = 0
-    $StartSnap | ForEach-Object { $StartCPUtime += $_.TotalProcessorTime.Milliseconds }
-
-    $EndCPUtime = 0
-    $EndSnap | ForEach-Object { $EndCPUtime += $_.TotalProcessorTime.Milliseconds }
-    if ($EndCPUtime -gt $StartCPUtime) {
-        $Global:Consumption.'currentCPU' = [math]::Round((($EndCPUtime - $StartCPUtime) / ($($Global:EnvironmentalVariables.'ResourceConsumption_Interval') * $Global:CPUs) * 100), 2)
-    }
-    if ($Global:Consumption.'currentCPU' -gt $Global:Consumption.'peakCPU') {
-        $Global:Consumption.'peakCPU' = $Global:Consumption.'currentCPU'
+    if ($SharedArea.vars.ConsumptionMeasurement.'currentCPU' -gt $SharedArea.vars.ConsumptionMeasurement.'peakCPU') {
+        $SharedArea.vars.ConsumptionMeasurement.'peakCPU' = $SharedArea.vars.ConsumptionMeasurement.'currentCPU'
     }
 
-    $RAMusageMB = 0
-    $EndSnap | ForEach-Object { $RAMusageMB += $_.WorkingSet }
+    $RAMusageMB = $EndSnap.WorkingSet
     $RAMusageMB /= 1MB
-    $Global:Consumption.'currentRAM' = [math]::Round($RAMusageMB, 1)
-    if ($Global:Consumption.'currentRAM' -gt $Global:Consumption.'peakRAM') {
-        $Global:Consumption.'peakRAM' = $Global:Consumption.'currentRAM'
+    $SharedArea.vars.ConsumptionMeasurement.'currentRAM' = [math]::Round($RAMusageMB, 1)
+    if ($SharedArea.vars.ConsumptionMeasurement.'currentRAM' -gt $SharedArea.vars.ConsumptionMeasurement.'peakRAM') {
+        $SharedArea.vars.ConsumptionMeasurement.'peakRAM' = $SharedArea.vars.ConsumptionMeasurement.'currentRAM'
     }
 
-    $Global:Consumption.'sumCPU' += $Global:Consumption.'currentCPU'
-    $Global:Consumption.'sumRAM' += $Global:Consumption.'currentRAM'
-    $Global:Consumption.'counter' ++
-    Write-Consumption
-}
-function Write-Consumption {
-    Get-ChildItem -Path $($Global:EnvironmentalVariables.'StatusPath') -Filter "currentCPU_*" | `
-        Rename-Item -NewName "currentCPU_$($Global:Consumption.currentCPU)"
-
-    Get-ChildItem -Path $($Global:EnvironmentalVariables.'StatusPath') -Filter "currentRAM_*" | `
-        Rename-Item -NewName "currentRAM_$($Global:Consumption.currentRAM)"
-
-    Get-ChildItem -Path $($Global:EnvironmentalVariables.'StatusPath') -Filter "peakCPU_*" | `
-        Rename-Item -NewName "peakCPU_$($Global:Consumption.peakCPU)"
-
-    Get-ChildItem -Path $($Global:EnvironmentalVariables.'StatusPath') -Filter "peakRAM_*" | `
-        Rename-Item -NewName "peakRAM_$($Global:Consumption.peakRAM)"   
+    $SharedArea.vars.ConsumptionMeasurement.'sumCPU' += $CurrentCPU
+    $SharedArea.vars.ConsumptionMeasurement.'sumRAM' += $SharedArea.vars.ConsumptionMeasurement.'currentRAM'
+    $SharedArea.vars.ConsumptionMeasurement.'counter' ++
+    $SharedArea.vars.GUI.WriteUsage(
+        $($SharedArea.vars.ConsumptionMeasurement.'currentCPU'),
+        $($SharedArea.vars.ConsumptionMeasurement.'currentRAM'),
+        $($SharedArea.vars.ConsumptionMeasurement.'peakCPU'),
+        $($SharedArea.vars.ConsumptionMeasurement.'peakRAM')
+    )
 }
 function Write-ConsumptionSummary {
-    "peakCPU: $($Global:Consumption.'peakCPU') %" | Out-File -FilePath "$($Global:EnvironmentalVariables.'LogsPath')/$($Global:EnvironmentalVariables.'RecourceConsumption')" -Append
-    "peakRAM: $($Global:Consumption.'peakRAM') MB" | Out-File -FilePath "$($Global:EnvironmentalVariables.'LogsPath')/$($Global:EnvironmentalVariables.'RecourceConsumption')" -Append
-    $AverageCPU = [math]::Round(($Global:Consumption.'sumCPU') / ($Global:Consumption.'counter'), 2)
-    $AverageRAM = [math]::Round(($Global:Consumption.'sumRAM') / ($Global:Consumption.'counter'), 1)
-    "AverageCPU: $AverageCPU %" | Out-File -FilePath "$($Global:EnvironmentalVariables.'LogsPath')/$($Global:EnvironmentalVariables.'RecourceConsumption')" -Append
-    "AverageRAM: $AverageRAM MB" | Out-File -FilePath "$($Global:EnvironmentalVariables.'LogsPath')/$($Global:EnvironmentalVariables.'RecourceConsumption')" -Append
-    $EndTime = (Get-ChildItem -Path $($Global:EnvironmentalVariables.'StatusPath') -Filter "*$($Global:EnvironmentalVariables.'FinalStatusExtension')" | Select-Object -First 1).LastAccessTime.ToString('HH\:mm\:ss\.fff')
-    $Message = (Get-ChildItem -Path $($Global:EnvironmentalVariables.'StatusPath') -Filter "*$($Global:EnvironmentalVariables.'FinalStatusExtension')" | Select-Object -First 1).Name.Split(".")[0]
-    "Execution status: $Message ; End time: $EndTime`n" | Out-File -FilePath "$($Global:EnvironmentalVariables.'LogsPath')/$($Global:EnvironmentalVariables.'RecourceConsumption')" -Append
+    "peakCPU: $($SharedArea.vars.ConsumptionMeasurement.'peakCPU') %" | Out-File -FilePath "$($SharedArea.vars.EnvClass.'LogsPath')/$($SharedArea.vars.EnvClass.'RecourceConsumption')" -Append
+    "peakRAM: $($SharedArea.vars.ConsumptionMeasurement.'peakRAM') MB" | Out-File -FilePath "$($SharedArea.vars.EnvClass.'LogsPath')/$($SharedArea.vars.EnvClass.'RecourceConsumption')" -Append
+    $AverageCPU = [math]::Round(($SharedArea.vars.ConsumptionMeasurement.'sumCPU') / ($SharedArea.vars.ConsumptionMeasurement.'counter'), 2)
+    $AverageRAM = [math]::Round(($SharedArea.vars.ConsumptionMeasurement.'sumRAM') / ($SharedArea.vars.ConsumptionMeasurement.'counter'), 1)
+    "AverageCPU: $AverageCPU %" | Out-File -FilePath "$($SharedArea.vars.EnvClass.'LogsPath')/$($SharedArea.vars.EnvClass.'RecourceConsumption')" -Append
+    "AverageRAM: $AverageRAM MB" | Out-File -FilePath "$($SharedArea.vars.EnvClass.'LogsPath')/$($SharedArea.vars.EnvClass.'RecourceConsumption')" -Append
+    $EndTime = $SharedArea.vars.LastExecution.EndTime
+    $Message = $SharedArea.vars.LastExecution.Message
+    "Execution status: $Message ; End time: $EndTime`n" | Out-File -FilePath "$($SharedArea.vars.EnvClass.'LogsPath')/$($SharedArea.vars.EnvClass.'RecourceConsumption')" -Append
 }

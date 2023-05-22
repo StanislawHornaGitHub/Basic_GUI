@@ -6,33 +6,6 @@
     Cmdlet: Write-Log -Message "Information will be saved in logs, but user will not be informed"
 #>
 Import-Module '.\Main\GUI_Handling_functions.psm1'
-function Invoke-Connection {
-    param(
-        [String]$Portal,
-        [PSCredential]$Credentials
-    )
-
-    # Write-Host $Portal
-    # Write-Host $Credentials
-    # Write-Host $Engines
-    Write-Log -Message "Trying to retrieve engine list" 
-    $num = Get-Random -Minimum 0 -Maximum 2
-    $ResultHash = @{}
-    if ($num -eq 1) {
-        $ResultHash.Add("Connected", $true)
-        $engines = @{'engine1' = 'aaaaa'
-            'engine2'          = 'bbbb'
-        }
-        Write-Log -Message "Engine list ready" 
-        $ResultHash.Add('Engines', $engines)
-    }
-    else {
-        $ResultHash.Add("Connected", $false)
-        $ResultHash.Add("ErrorMessage", "Unauthorised access")
-        Write-Log -Message "Unauthorised access" 
-    }
-    return $ResultHash
-}
 function Invoke-Run {
     param(
         [string] $Portal,
@@ -52,29 +25,32 @@ function Invoke-Run {
     Start-Sleep -Milliseconds $delay
     Write-Status -Message "Chrome"  
     Start-Sleep -Milliseconds $delay
-    # $csv = Import-Csv -Path "C:\Temp\aa.csv"
-    # for ($i = 1; $i -lt $csv.Count; $i++) {
-    #     $thisDate = $csv[$i]."Last seen"
-    #     $thatDate = $csv[($i - 1)]."Last seen"
-    #     if([datetime]::ParseExact($thisDate,"yyyy-MM-dd'T'HH:mm:ss",$null) -gt
-    #     [datetime]::ParseExact($thatDate,"yyyy-MM-dd'T'HH:mm:ss",$null)){
-    #         $csv[$i]."Device name" | Out-File "./test.csv" -Append
-    #     }
-    # }
+    $csv = Import-Csv -Path "C:\Temp\aa.csv"
+    for ($i = 1; $i -lt $csv.Count; $i++) {
+        $thisDate = $csv[$i]."Last seen"
+        $thatDate = $csv[($i - 1)]."Last seen"
+        if ([datetime]::ParseExact($thisDate, "yyyy-MM-dd'T'HH:mm:ss", $null) -gt
+            [datetime]::ParseExact($thatDate, "yyyy-MM-dd'T'HH:mm:ss", $null)) {
+            $csv[$i]."Device name" | Out-File "./test.csv" -Append
+        }
+    }
 
- 
+    try {
+        lfjn
+    }
+    catch {
+        Write-Catch $_ 
+    }
+    Start-Sleep -Milliseconds $delay
     lfjn
     ldk
     Write-Status -Message "End"  
     $num = Get-Random -Minimum 0 -Maximum 2
-    $ResultHash = @{}
-    douh
     if ($num -eq 1) {
-        Write-Status -Message "Success"   -Final
+        Write-Status -Message "Success" -Final
     }
     else {
-        Write-Status -Message "Connection aborted"   -Final
+        Write-Status -Message "Connection aborted" -Final
     }
-    $Error | Out-File -FilePath "$($EnvironmentalVariables.'LogsPath')\$($EnvironmentalVariables.'RunRawLogName')" -Append
-    return $ResultHash
+
 }

@@ -60,7 +60,10 @@ class GUI {
             $p = (Get-Process explorer | Sort-Object -Property CPU -Descending | Select-Object -First 1).Path
             $this.Form.Icon = [System.Drawing.Icon]::ExtractAssociatedIcon($p)
         }
-        $this.Form.Add_FormClosing({[GUI_Config]::CloseInstance()})
+        $this.Form.Add_FormClosing({
+                [GUI_Config]::CloseInstance()
+                $THIS_FORM.Runspaces.DisposeAllJobs()
+            })
         ######################################################################
         #-------------------------- Labels Section --------------------------#
         ######################################################################
@@ -86,6 +89,9 @@ class GUI {
             $this.GUI_Components.'Big_GUI'.'Label'.'ConnectionStatusDetails'.Font = New-Object System.Drawing.Font('Microsoft Sans Serif', 10, [System.Drawing.FontStyle]::Bold)
         }
         $this.NewLabel([ComponentType]"Big_GUI", "RunStatus", "Run Status", 150, 170)
+        $this.GUI_Components.'BIG_GUI'.'Label'.'RunStatus'.MaximumSize = New-Object System.Drawing.Size(290, 60)
+        $this.GUI_Components.'BIG_GUI'.'Label'.'RunStatus'.AutoEllipsis = $true
+        
 
         $this.NewCheckBox([ComponentType]"Small_GUI", "ShowPassword", "Show Password", 140, 110, 200, 20, $false, { $THIS_FORM.ShowPassword() })
 
@@ -135,7 +141,7 @@ class GUI {
         else {
             $this.BigGUI()
         }
-        $this.Runspaces = [RunSpaceArea]::New(@('InvokeRun'), @([GUI_config]::InvokeRUN))
+        $this.Runspaces = [RunSpaceArea]::New([GUI_config]::Jobs)
         $this.Form.ShowDialog()
     }
     NewLabel(
@@ -347,7 +353,7 @@ class GUI {
         $this.GUI_Components.'Big_GUI'.'ProgressBar'.'Processing'.visible = $true
     }
     ShowExecutionStatus([String]$CurrentMessage) {
-        #[GUI_Config]::WriteLog("ShowExecutionStatus method", ([GUI_Config]::GUI_LogName))
+        [GUI_Config]::WriteLog("ShowExecutionStatus method", ([GUI_Config]::GUI_LogName))
         $this.GUI_Components.'Big_GUI'.'ProgressBar'.'Processing'.visible = $false
         if ($CurrentMessage -eq "Success") {
             $this.GUI_Components.'Big_GUI'.'Label'."RunStatus".text = ($CurrentMessage + " ")
@@ -361,44 +367,24 @@ class GUI {
             $this.GUI_Components.'Big_GUI'.'Label'."RunStatus".Font = `
                 New-Object System.Drawing.Font('Microsoft Sans Serif', 12, [System.Drawing.FontStyle]::Bold)
         }
-        $this.UnlockInputs()
-        #$this.GUI_Components.'Measurement'.'Label'.'currentCPU'.text = "CPU: - %"
-        #$this.GUI_Components.'Measurement'.'Label'.'currentRAM'.text = "RAM: - MB"
-        #[GUI_Config]::WriteLog("RUN execution status: $CurrentMessage", ([GUI_Config]::GUI_LogName))
+        $this.GUI_Components.'Measurement'.'Label'.'currentCPU'.text = "CPU: - %"
+        $this.GUI_Components.'Measurement'.'Label'.'currentRAM'.text = "RAM: - MB"
+        [GUI_Config]::WriteLog("RUN execution status: $CurrentMessage", ([GUI_Config]::GUI_LogName))
     }
     WriteStatus([String]$Status) {
         $this.GUI_Components.'Big_GUI'.'Label'.'RunStatus'.text = $Status
     }
-    WriteUsage() {
-        try {
-            $currentCPU = (Get-ChildItem -Path $([GUI_Config]::StatusPath) -Filter "currentCPU_*").Name.Split("_")[1]
-        }
-        catch {
-            $currentCPU = "-"
-        }
-        $this.GUI_Components.'Measurement'.'Label'.'currentCPU'.text = "CPU: $currentCPU %"
-        try {
-            $currentRAM = (Get-ChildItem -Path $([GUI_Config]::StatusPath) -Filter "currentRAM_*").Name.Split("_")[1]
-        }
-        catch {
-            $currentRAM = "-"
-        }
-        $this.GUI_Components.'Measurement'.'Label'.'currentRAM'.text = "RAM: $currentRAM MB"
-        try {
-            $peakCPU = (Get-ChildItem -Path $([GUI_Config]::StatusPath) -Filter "peakCPU_*").Name.Split("_")[1]
-        }
-        catch {
-            $peakCPU = "-"
-        }
-        $this.GUI_Components.'Measurement'.'Label'.'peakCPU'.text = "CPU: $peakCPU %"
-        try {
-            $peakRAM = (Get-ChildItem -Path $([GUI_Config]::StatusPath) -Filter "peakRAM_*").Name.Split("_")[1]
-        }
-        catch {
-            $peakRAM = "-"
-        }
-        $this.GUI_Components.'Measurement'.'Label'.'peakRAM'.text = "RAM: $peakRAM MB"
+    WriteUsage($currentCPU, $currentRAM, $peakCPU, $peakRAM) {
+        
 
+        $this.GUI_Components.'Measurement'.'Label'.'currentCPU'.text = "CPU: $currentCPU %"
+
+        $this.GUI_Components.'Measurement'.'Label'.'currentRAM'.text = "RAM: $currentRAM MB"
+
+        $this.GUI_Components.'Measurement'.'Label'.'peakCPU'.text = "CPU: $peakCPU %"
+
+        $this.GUI_Components.'Measurement'.'Label'.'peakRAM'.text = "RAM: $peakRAM MB"
+        
     }
     PortalChange() {
         if ($this.GUI_Components.'Big_GUI'.'Label'.'ConnectionStatusDetails'.text -notlike "Connected*") {
@@ -475,17 +461,7 @@ class GUI {
             [GUI_Config]::WriteLog($_, ([GUI_Config]::GUI_LogName))
             $Credentials = $null
         }
-
-        $Global:EnvironmentalVariables = @{
-            'LogsPath'                  = ([GUI_Config]::LogsPath)
-            'StatusPath'                = ([GUI_Config]::StatusPath)
-            'LogName'                   = ([GUI_Config]::Connection_LogName)
-            'ProcessingStatusExtension' = (([GUI_Config]::ProcessingStatusExtension).Replace("*", ""))
-            'FinalStatusExtension'      = (([GUI_Config]::FinalStatusExtension).Replace("*", ""))
-            'ExecutionTimersName'       = ([GUI_Config]::ExecutionTimersName)
-            'RunRawLogName'             = ([GUI_Config]::RunErrors)
-        }
-        $Result = Invoke-Connection -Portal $Portal -Credentials $Credentials
+        $Result = & $([GUI_Config]::InvokeConnection) -Portal $Portal -Credentials $Credentials
         if ($Result.'Connected' -eq $true) {
             [GUI_Config]::WriteLog("Connect execution status: Connected ; $Portal", ([GUI_Config]::GUI_LogName))
             $this.BigGUI()
@@ -504,17 +480,9 @@ class GUI {
             return
         }
         $this.StartProcessing()
-        $EnvironmentalVariablesFromClass = @{
-            'LogsPath'                     = ([GUI_Config]::LogsPath)
-            'StatusPath'                   = ([GUI_Config]::StatusPath)
-            'LogName'                      = ([GUI_Config]::Execution_LogName)
-            'ProcessingStatusExtension'    = (([GUI_Config]::ProcessingStatusExtension).Replace("*", ""))
-            'FinalStatusExtension'         = (([GUI_Config]::FinalStatusExtension).Replace("*", ""))
-            'RecourceConsumption'          = ([GUI_Config]::RecourceConsumption)
-            'ExecutionTimersName'          = ([GUI_Config]::ExecutionTimersName)
-            'RunRawLogName'                = ([GUI_Config]::RunErrors)
-            'ResourceConsumption_Interval' = ([GUI_config]::ResourceConsumption_Interval)
-        }
+        # $this.Runspaces.DisposeAllJobs()
+        # $this.Runspaces.CreatePSinstances()
+        
         try {
             $Username = ($this.GUI_Components.(([GUI_Config]::InputVariables).'Login'.'ComponentType').'Box'.'Login'.text)
             $Password = ConvertTo-SecureString ($this.GUI_Components.(([GUI_Config]::InputVariables).'Password'.'ComponentType').'Box'.'Password'.text) -AsPlainText -Force
@@ -525,13 +493,37 @@ class GUI {
             $Credentials = $null
         }
         $InputVariables = @{
-            'CurrentLocation' = $((Get-Location).Path)
-            'EnvClass'        = $EnvironmentalVariablesFromClass
-            'Timers'          = @{}
-            'Portal'          = $Portal
-            'Credentials'     = $Credentials
-            'Engines'         = $this.Engines
-            'GUI'             = $this 
+            'CurrentLocation'        = $((Get-Location).Path)
+            'Timers'                 = @{}
+            'Portal'                 = $Portal
+            'Credentials'            = $Credentials
+            'Engines'                = $this.Engines
+            'GUI'                    = $this 
+            'LastExecution'          = @{
+                'Message' = ""
+                'EndTime' = ""
+            }
+            'ConsumptionMeasurement' = @{
+                'currentCPU' = 0
+                'currentRAM' = 0
+                'peakCPU'    = 0
+                'peakRAM'    = 0
+                'sumCPU'     = 0
+                'sumRAM'     = 0
+                'counter'    = 0
+            }
+            'EnvClass'               = @{
+                'LogsPath'                     = ([GUI_Config]::LogsPath)
+                'StatusPath'                   = ([GUI_Config]::StatusPath)
+                'LogName'                      = ([GUI_Config]::Execution_LogName)
+                'ProcessingStatusExtension'    = (([GUI_Config]::ProcessingStatusExtension).Replace("*", ""))
+                'FinalStatusExtension'         = (([GUI_Config]::FinalStatusExtension).Replace("*", ""))
+                'RecourceConsumption'          = ([GUI_Config]::RecourceConsumption)
+                'ExecutionTimersName'          = ([GUI_Config]::ExecutionTimersName)
+                'RunRawLogName'                = ([GUI_Config]::RunErrors)
+                'ResourceConsumption_Interval' = ([GUI_config]::ResourceConsumption_Interval)
+                'ProgramName'                  = ([GUI_config]::ProgramName)
+            }
         }
         $this.Runspaces.AddVariablesToSharedArea($InputVariables)
         $this.Runspaces.StartAllJobs()

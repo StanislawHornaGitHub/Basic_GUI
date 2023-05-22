@@ -6,7 +6,7 @@ enum ComponentType {
 }
 class GUI_Config {
     # Form Variables (Basic)
-    static [string] $ProgramName = "Powershell GUI"
+    static [string] $ProgramName = "Powershell GUI aaaaaa"
     static [string] $ProgramTitle = "GUI for Powershell automation"
     static [string] $RunButton = "Prepare Report"
 
@@ -29,10 +29,55 @@ class GUI_Config {
             'ComponentType' = "Small_GUI"   # Default: "Small_GUI"
         }
     }
-    static [scriptblock] $InvokeRUN = {
-        Import-Module ./Main/GUI_Functions.psm1
-        Invoke-Run -Portal $SharedArea.Vars.Portal -Credentials $SharedArea.Vars.Credentials -Engines $SharedArea.Vars.Engines
+    static [hashtable] $Jobs = @{
+        'InvokeRun' = [scriptblock] {
+            Import-Module ./Main/GUI_Functions.psm1
+            Invoke-Run -Portal $SharedArea.Vars.Portal -Credentials $SharedArea.Vars.Credentials -Engines $SharedArea.Vars.Engines
+        }
+        'Measurement' = [scriptblock] {
+            Import-Module ./Main/GUI_Functions.psm1
+            $ID = (Get-process | Where-Object {$_.MainWindowTitle -eq $SharedArea.Vars.EnvClass.ProgramName}).Id
+            $CPUs = (Get-WMIObject Win32_ComputerSystem).NumberOfLogicalProcessors
+            $ID | Out-File -FilePath .\test.txt
+            $CPUs | Out-File -FilePath .\test.txt -Append
+            Get-Process -Id $ID |Out-File -FilePath .\test.txt -Append
+            do {
+                try {
+                    Get-Consumption -ID $ID -CPUs $CPUs
+                }
+                catch {
+                    $_ | Out-File -FilePath .\test.txt -Append
+                }
+                
+            }while ($true)
+            $SharedArea.vars.ConsumptionMeasurement | Out-File -FilePath .\test.txt -Append
+            Write-ConsumptionSummary
+        }
     }
+    static [scriptblock] $InvokeConnection = {
+        param(
+            [String]$Portal,
+            [PSCredential]$Credentials
+        )
+        [GUI_Config]::WriteLog("Trying to retrieve engine list", $([GUI_Config]::Connection_LogName))
+        $num = Get-Random -Minimum 0 -Maximum 2
+        $ResultHash = @{}
+        if ($num -eq 1) {
+            $ResultHash.Add("Connected", $true)
+            $engines = @{'engine1' = 'aaaaa'
+                'engine2'          = 'bbbb'
+            }
+            [GUI_Config]::WriteLog("Engine list ready", $([GUI_Config]::Connection_LogName)) 
+            $ResultHash.Add('Engines', $engines)
+        }
+        else {
+            $ResultHash.Add("Connected", $false)
+            $ResultHash.Add("ErrorMessage", "Unauthorised access")
+            [GUI_Config]::WriteLog("Unauthorised access", $([GUI_Config]::Connection_LogName)) 
+        }
+        return $ResultHash
+    }
+
     static [int] $Big_FormSize_X = 480
     static [int] $Big_FormSize_Y = 150
     static [int] $Small_FormSize_X = 480
@@ -261,7 +306,6 @@ class GUI_Config {
         try {
             Remove-Item -Path ([GUI_Config]::LockFile) -Force -Confirm:$false
         }
-        catch {
-        }
+        catch {}
     }
 }

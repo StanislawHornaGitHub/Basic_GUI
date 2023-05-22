@@ -8,13 +8,9 @@ class RunSpaceArea {
             'Vars'                = @{}
         })
 
-    RunSpaceArea([array]$JobNames, [array]$ScriptBlocks) {
-        if ($JobNames.Count -ne $ScriptBlocks.Count) {
-            Write-Error "JobNames are not matching with ScriptBlocks"
-            return
-        }
+    RunSpaceArea([hashtable]$Jobs) {
         $ThisSharedArea = $this.SharedArea
-        foreach ($job in $JobNames) {            
+        foreach ($job in $Jobs.Keys) {            
             # Create runspace
             $this.SharedArea.RunSpaces.Add($job, ([System.Management.Automation.Runspaces.RunspaceFactory]::CreateRunspace()))
             $this.SharedArea.RunSpaces.$job.ApartmentState = "MTA"
@@ -22,17 +18,20 @@ class RunSpaceArea {
             $this.SharedArea.RunSpaces.$job.Open()
             $this.SharedArea.RunSpaces.$job.SessionStateProxy.SetVariable('SharedArea', $ThisSharedArea)
         }
-        $this.CreatePSinstances($JobNames, $ScriptBlocks)
+        $this.CreatePSinstances($Jobs)
     }
-    CreatePSinstances([array]$JobNames, [array]$ScriptBlocks) {
-        $iterator = 0
-        foreach ($job in $JobNames) {  
+    CreatePSinstances([hashtable]$Jobs) {
+        foreach ($job in $Jobs.Keys) {  
             # Create PowerShell instance
-            $this.SharedArea.PowerShellInstances.Add($job, ([powershell]::Create()))
-            $this.SharedArea.PowerShellInstances.$job.runspace = $this.SharedArea.RunSpaces.$job
-            $this.SharedArea.PowerShellInstances.$job.AddScript($ScriptBlocks[$iterator])
-            $this.SharedArea.Scriptblocks.Add($job, $ScriptBlocks[$iterator])
-            $iterator++
+            If(-not ($this.SharedArea.PowerShellInstances.ContainsKey($job))){
+                $this.SharedArea.PowerShellInstances.Add($job, ([powershell]::Create()))
+                $this.SharedArea.PowerShellInstances.$job.runspace = $this.SharedArea.RunSpaces.$job
+                $this.SharedArea.PowerShellInstances.$job.AddScript($jobs.$job)
+                $this.SharedArea.Scriptblocks.Add($job, $Jobs.$job)
+            }else{
+                Write-Error -Message "$job already exists"
+                return
+            }
         }  
     }
     StartAllJobs() {
@@ -43,12 +42,18 @@ class RunSpaceArea {
     }
     StartJob([array]$JobNames) {
         foreach ($job in $JobNames) {
-            $this.SharedArea.JobStatuses.Add($job, $this.SharedArea.PowerShellInstances.$job.BeginInvoke())
+            if (-not ($this.SharedArea.JobStatuses.ContainsKey($job))) {
+                $this.SharedArea.JobStatuses.Add($job, $this.SharedArea.PowerShellInstances.$job.BeginInvoke())
+            }else {
+                $this.SharedArea.JobStatuses.$job = $this.SharedArea.PowerShellInstances.$job.BeginInvoke()
+            }
         }
     }
     DisposeJob([array]$JobNames) {
         foreach ($job in $JobNames) {
             $this.SharedArea.PowerShellInstances.$job.Dispose()
+            $this.SharedArea.PowershellInstances.Remove($job)
+            $this.SharedArea.JobStatuses.Remove($job)
         }
     }
     AddVariablesToSharedArea([hashtable]$InputVariables) {
