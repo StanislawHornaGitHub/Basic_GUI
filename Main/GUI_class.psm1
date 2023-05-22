@@ -61,8 +61,9 @@ class GUI {
             $this.Form.Icon = [System.Drawing.Icon]::ExtractAssociatedIcon($p)
         }
         $this.Form.Add_FormClosing({
-                [GUI_Config]::CloseInstance()
                 $THIS_FORM.Runspaces.DisposeAllJobs()
+                [GUI_Config]::WriteLog("Form Close invoked", ([GUI_Config]::GUI_LogName))
+                [GUI_Config]::CloseInstance()
             })
         ######################################################################
         #-------------------------- Labels Section --------------------------#
@@ -98,6 +99,7 @@ class GUI {
         ######################################################################
         #------------------------ Measurement Section -----------------------#
         ######################################################################
+        $this.NewLabel([ComponentType]"Measurement", "Timer", "00:00:00", 500, 5)
         $this.NewLabel([ComponentType]"Measurement", "CurrentTitle", "Current consumption:", 460, 30)
         $this.NewLabel([ComponentType]"Measurement", "PeakTitle", "Peak consumption:", 460, 120)
         $this.NewLabel([ComponentType]"Measurement", "currentCPU", "CPU: - %", 470, 60)
@@ -375,16 +377,13 @@ class GUI {
         $this.GUI_Components.'Big_GUI'.'Label'.'RunStatus'.text = $Status
     }
     WriteUsage($currentCPU, $currentRAM, $peakCPU, $peakRAM) {
-        
-
         $this.GUI_Components.'Measurement'.'Label'.'currentCPU'.text = "CPU: $currentCPU %"
-
         $this.GUI_Components.'Measurement'.'Label'.'currentRAM'.text = "RAM: $currentRAM MB"
-
         $this.GUI_Components.'Measurement'.'Label'.'peakCPU'.text = "CPU: $peakCPU %"
-
         $this.GUI_Components.'Measurement'.'Label'.'peakRAM'.text = "RAM: $peakRAM MB"
-        
+    }
+    WriteTimer($Time) {
+        $this.GUI_Components.'Measurement'.'Label'.'Timer'.text = $Time
     }
     PortalChange() {
         if ($this.GUI_Components.'Big_GUI'.'Label'.'ConnectionStatusDetails'.text -notlike "Connected*") {
@@ -480,9 +479,7 @@ class GUI {
             return
         }
         $this.StartProcessing()
-        # $this.Runspaces.DisposeAllJobs()
-        # $this.Runspaces.CreatePSinstances()
-        
+        $this.Runspaces.ReConstruct([GUI_config]::Jobs)
         try {
             $Username = ($this.GUI_Components.(([GUI_Config]::InputVariables).'Login'.'ComponentType').'Box'.'Login'.text)
             $Password = ConvertTo-SecureString ($this.GUI_Components.(([GUI_Config]::InputVariables).'Password'.'ComponentType').'Box'.'Password'.text) -AsPlainText -Force
@@ -527,55 +524,5 @@ class GUI {
         }
         $this.Runspaces.AddVariablesToSharedArea($InputVariables)
         $this.Runspaces.StartAllJobs()
-        # Old Measurement Consumption
-        <#
-        try {
-            $IDs = (get-process powershell -ErrorAction Stop).ID
-        }
-        catch {
-            $IDs = $null 
-        }
-    
-        Start-Job -Name 'Measure Consumption' -InitializationScript { Import-Module ./Main/GUI_Functions.psm1 } -ScriptBlock {
-            param(
-                $CurrentLocation,
-                $EnvironmentalVariablesFromClass,
-                $IDs,
-                $GUI_Measurement
-            )
-          
-            Set-Location $CurrentLocation
-            $Global:Location = $CurrentLocation
-            $Global:EnvironmentalVariables = $EnvironmentalVariablesFromClass
-            $Global:ExistingPSprocesses = $IDs
-            $Global:CPUs = (Get-WMIObject Win32_ComputerSystem).NumberOfLogicalProcessors
-            $Global:GUI = $GUI_Measurement
-            $Global:Consumption = @{
-                'currentCPU' = 0
-                'currentRAM' = 0
-                'peakCPU'    = 0
-                'peakRAM'    = 0
-                'sumCPU'     = 0
-                'sumRAM'     = 0
-                'counter'    = 0
-            }
-            try {
-                New-Item -ItemType File -Path "$($Global:EnvironmentalVariables.'StatusPath')/currentCPU_-"
-                New-Item -ItemType File -Path "$($Global:EnvironmentalVariables.'StatusPath')/currentRAM_-"
-                New-Item -ItemType File -Path "$($Global:EnvironmentalVariables.'StatusPath')/peakCPU_-"
-                New-Item -ItemType File -Path "$($Global:EnvironmentalVariables.'StatusPath')/peakRAM_-"
-            }
-            catch {
-                Write-Log -Message "Unable to create files required for resource measurement"
-                return
-            }
-  
-            do {
-                Get-Consumption
-            }while (-not (Test-Path -Path "$($EnvironmentalVariablesFromClass.'StatusPath')/*$($EnvironmentalVariablesFromClass.'FinalStatusExtension')"))
-            Write-ConsumptionSummary
-
-        } -ArgumentList (Get-Location).Path, $EnvironmentalVariablesFromClass, $IDs, $this.GUI_Components.'Measurement'
-        #>
     }
 }

@@ -1,5 +1,6 @@
 using module '.\GUI_config.psm1'
 using module '.\GUI_class.psm1'
+using module '.\Runspace_class.psm1'
 Add-Type -AssemblyName System.Windows.Forms
 [System.Windows.Forms.Application]::EnableVisualStyles()
 [void] [System.Reflection.Assembly]::LoadWithPartialName("System.Drawing")
@@ -13,6 +14,8 @@ function Write-Status {
         $SharedArea.vars.LastExecution.Message = $Message
         Write-Log -Message $Message
         $SharedArea.PowerShellInstances.Measurement.Stop()
+        $SharedArea.PowerShellInstances.OverallTimer.Stop()
+        Write-Timer -Timer $($SharedArea.vars.Timers.Stopwatches.(($SharedArea.vars.Timers.Order[0])))
         Write-ConsumptionSummary
         $SharedArea.vars.GUI.ShowExecutionStatus($Message)
         $SharedArea.vars.GUI.UnlockInputs()
@@ -94,7 +97,9 @@ function Get-Consumption {
     $EndCPUtime = ($EndSnap.TotalProcessorTime.Ticks)
 
     $CurrentCPU = [math]::Round(((($EndCPUtime - $StartCPUtime) / ($($SharedArea.vars.EnvClass.'ResourceConsumption_Interval') * $CPUs * 10000)) * 100), 2)
-    
+    if($CurrentCPU -gt 100){
+        $CurrentCPU =  100
+    }
     if($CurrentCPU -gt 0){
         $SharedArea.vars.ConsumptionMeasurement.'currentCPU' = $CurrentCPU 
     }
@@ -130,4 +135,14 @@ function Write-ConsumptionSummary {
     $EndTime = $SharedArea.vars.LastExecution.EndTime
     $Message = $SharedArea.vars.LastExecution.Message
     "Execution status: $Message ; End time: $EndTime`n" | Out-File -FilePath "$($SharedArea.vars.EnvClass.'LogsPath')/$($SharedArea.vars.EnvClass.'RecourceConsumption')" -Append
+}
+function Write-Timer {
+    param (
+        $Timer
+    )
+    try {
+        $Time = ($Timer.Elapsed.ToString("hh\:mm\:ss"))
+        $SharedArea.vars.GUI.WriteTimer($Time)
+    }
+    catch {}
 }

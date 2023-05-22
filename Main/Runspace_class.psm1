@@ -34,6 +34,13 @@ class RunSpaceArea {
             }
         }  
     }
+    ReConstruct([hashtable]$Jobs){
+        $this.DisposeAllJobs()
+        $this.SharedArea.JobStatuses = @{}
+        $this.SharedArea.vars = @{}
+        $this.SharedArea.Scriptblocks = @{}
+        $this.CreatePSinstances($Jobs)
+    }
     StartAllJobs() {
         $this.StartJob($($this.SharedArea.PowerShellInstances.Keys))
     }
@@ -64,6 +71,23 @@ class RunSpaceArea {
             else {
                 $this.SharedArea.Vars.$var = $InputVariables.$var
             }
+        }
+    }
+    WaitAnyPSInstance(){
+        $flag = $true
+        while ($flag) {
+            $flag = $false
+            foreach($job in $this.SharedArea.JobStatuses.Keys){
+                if($this.SharedArea.JobStatuses.$job.IsCompleted -eq $false){
+                    $flag = $true
+                    break
+                }
+            }
+        }
+    }
+    WaitPSInstance([String]$JobName){
+        while ($this.SharedArea.JobStatuses.$JobName.IsCompleted -eq $false) {
+            
         }
     }
 }

@@ -6,7 +6,7 @@ enum ComponentType {
 }
 class GUI_Config {
     # Form Variables (Basic)
-    static [string] $ProgramName = "Powershell GUI aaaaaa"
+    static [string] $ProgramName = "Powershell GUI"
     static [string] $ProgramTitle = "GUI for Powershell automation"
     static [string] $RunButton = "Prepare Report"
 
@@ -38,9 +38,6 @@ class GUI_Config {
             Import-Module ./Main/GUI_Functions.psm1
             $ID = (Get-process | Where-Object {$_.MainWindowTitle -eq $SharedArea.Vars.EnvClass.ProgramName}).Id
             $CPUs = (Get-WMIObject Win32_ComputerSystem).NumberOfLogicalProcessors
-            $ID | Out-File -FilePath .\test.txt
-            $CPUs | Out-File -FilePath .\test.txt -Append
-            Get-Process -Id $ID |Out-File -FilePath .\test.txt -Append
             do {
                 try {
                     Get-Consumption -ID $ID -CPUs $CPUs
@@ -50,8 +47,16 @@ class GUI_Config {
                 }
                 
             }while ($true)
-            $SharedArea.vars.ConsumptionMeasurement | Out-File -FilePath .\test.txt -Append
-            Write-ConsumptionSummary
+        }
+        'OverallTimer' = [scriptblock]{
+            Import-Module ./Main/GUI_Functions.psm1
+            $OverallTimer = [System.Diagnostics.Stopwatch]::StartNew()
+            $RefreshTime = 1000
+            $flag = $true
+            do{
+                Write-Timer -Timer $OverallTimer
+                Start-Sleep -Milliseconds $RefreshTime
+            }while($true)
         }
     }
     static [scriptblock] $InvokeConnection = {

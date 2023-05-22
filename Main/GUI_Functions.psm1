@@ -5,6 +5,7 @@
     
     Cmdlet: Write-Log -Message "Information will be saved in logs, but user will not be informed"
 #>
+using module '.\\Runspace_class.psm1'
 Import-Module '.\Main\GUI_Handling_functions.psm1'
 function Invoke-Run {
     param(
@@ -25,23 +26,67 @@ function Invoke-Run {
     Start-Sleep -Milliseconds $delay
     Write-Status -Message "Chrome"  
     Start-Sleep -Milliseconds $delay
-    $csv = Import-Csv -Path "C:\Temp\aa.csv"
-    for ($i = 1; $i -lt $csv.Count; $i++) {
-        $thisDate = $csv[$i]."Last seen"
-        $thatDate = $csv[($i - 1)]."Last seen"
-        if ([datetime]::ParseExact($thisDate, "yyyy-MM-dd'T'HH:mm:ss", $null) -gt
-            [datetime]::ParseExact($thatDate, "yyyy-MM-dd'T'HH:mm:ss", $null)) {
-            $csv[$i]."Device name" | Out-File "./test.csv" -Append
+    Write-Status -Message "Parallel operations"
+    $hashParallel = @{
+        'J1' = [scriptblock]{
+            $csv = Import-Csv -Path "C:\Temp\aa.csv"
+            for ($i = 1; $i -lt $csv.Count; $i++) {
+                $thisDate = $csv[$i]."Last seen"
+                $thatDate = $csv[($i - 1)]."Last seen"
+                if ([datetime]::ParseExact($thisDate, "yyyy-MM-dd'T'HH:mm:ss", $null) -gt
+                    [datetime]::ParseExact($thatDate, "yyyy-MM-dd'T'HH:mm:ss", $null)) {
+                    $csv[$i]."Device name" | Out-File "./test.csv" -Append
+                }
+            }
+            "FLAG J1" | Out-File "./tempflagfile.txt" -Append
+        }
+        'J2' = [scriptblock]{
+            $csv = Import-Csv -Path "C:\Temp\aa.csv"
+            for ($i = 1; $i -lt $csv.Count; $i++) {
+                $thisDate = $csv[$i]."Last seen"
+                $thatDate = $csv[($i - 1)]."Last seen"
+                if ([datetime]::ParseExact($thisDate, "yyyy-MM-dd'T'HH:mm:ss", $null) -gt
+                    [datetime]::ParseExact($thatDate, "yyyy-MM-dd'T'HH:mm:ss", $null)) {
+                    $csv[$i]."Device name" | Out-File "./test.csv" -Append
+                }
+            }
+            "FLAG J2" | Out-File "./tempflagfile.txt" -Append
+        }
+        'J3' = [scriptblock]{
+            $csv = Import-Csv -Path "C:\Temp\aa.csv"
+            for ($i = 1; $i -lt $csv.Count; $i++) {
+                $thisDate = $csv[$i]."Last seen"
+                $thatDate = $csv[($i - 1)]."Last seen"
+                if ([datetime]::ParseExact($thisDate, "yyyy-MM-dd'T'HH:mm:ss", $null) -gt
+                    [datetime]::ParseExact($thatDate, "yyyy-MM-dd'T'HH:mm:ss", $null)) {
+                    $csv[$i]."Device name" | Out-File "./test.csv" -Append
+                }
+            }
+            "FLAG J3" | Out-File "./tempflagfile.txt" -Append
+        }
+        'J4' = [scriptblock]{
+            $csv = Import-Csv -Path "C:\Temp\aa.csv"
+            for ($i = 1; $i -lt $csv.Count; $i++) {
+                $thisDate = $csv[$i]."Last seen"
+                $thatDate = $csv[($i - 1)]."Last seen"
+                if ([datetime]::ParseExact($thisDate, "yyyy-MM-dd'T'HH:mm:ss", $null) -gt
+                    [datetime]::ParseExact($thatDate, "yyyy-MM-dd'T'HH:mm:ss", $null)) {
+                    $csv[$i]."Device name" | Out-File "./test.csv" -Append
+                }
+            }
+            "FLAG J4" | Out-File "./tempflagfile.txt" -Append
         }
     }
-
     try {
-        lfjn
+        $temp = [RunSpaceArea]::new($hashParallel)
+        $temp.StartAllJobs()
+        $temp.WaitAnyPSInstance()
     }
     catch {
-        Write-Catch $_ 
+        write-catch -Message $_ -throwRUN
     }
-    Start-Sleep -Milliseconds $delay
+
+
     lfjn
     ldk
     Write-Status -Message "End"  
