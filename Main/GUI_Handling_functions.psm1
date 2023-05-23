@@ -110,6 +110,9 @@ function Get-Consumption {
 
     $RAMusageMB = $EndSnap.WorkingSet
     $RAMusageMB /= 1MB
+    if($RAMusageMB -lt 0){
+        $RAMusageMB = ($RAMusageMB * (-1))
+    }
     $SharedArea.vars.ConsumptionMeasurement.'currentRAM' = [math]::Round($RAMusageMB, 1)
     if ($SharedArea.vars.ConsumptionMeasurement.'currentRAM' -gt $SharedArea.vars.ConsumptionMeasurement.'peakRAM') {
         $SharedArea.vars.ConsumptionMeasurement.'peakRAM' = $SharedArea.vars.ConsumptionMeasurement.'currentRAM'

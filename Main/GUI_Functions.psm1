@@ -28,32 +28,38 @@ function Invoke-Run {
     Start-Sleep -Milliseconds $delay
     Write-Status -Message "Parallel operations"
     $hashParallel = @{
-        'J1' = [scriptblock]{
-            $csv = Import-Csv -Path "C:\Temp\aa.csv"
+        'J1' = [scriptblock] {
+            $csv = Import-Csv -Path "C:\Temp\Output_Daily_Reports_Powershell\NexthinkRawData.csv"
             for ($i = 1; $i -lt $csv.Count; $i++) {
                 $thisDate = $csv[$i]."Last seen"
                 $thatDate = $csv[($i - 1)]."Last seen"
                 if ([datetime]::ParseExact($thisDate, "yyyy-MM-dd'T'HH:mm:ss", $null) -gt
                     [datetime]::ParseExact($thatDate, "yyyy-MM-dd'T'HH:mm:ss", $null)) {
                     $csv[$i]."Device name" | Out-File "./test.csv" -Append
+                }
+                if($i -gt 100){
+                    break
                 }
             }
             "FLAG J1" | Out-File "./tempflagfile.txt" -Append
         }
-        'J2' = [scriptblock]{
-            $csv = Import-Csv -Path "C:\Temp\aa.csv"
+        'J2' = [scriptblock] {
+            $csv = Import-Csv -Path "C:\Temp\Output_Daily_Reports_Powershell\NexthinkRawData.csv"
             for ($i = 1; $i -lt $csv.Count; $i++) {
                 $thisDate = $csv[$i]."Last seen"
                 $thatDate = $csv[($i - 1)]."Last seen"
                 if ([datetime]::ParseExact($thisDate, "yyyy-MM-dd'T'HH:mm:ss", $null) -gt
                     [datetime]::ParseExact($thatDate, "yyyy-MM-dd'T'HH:mm:ss", $null)) {
                     $csv[$i]."Device name" | Out-File "./test.csv" -Append
+                }
+                if($i -gt 100){
+                    break
                 }
             }
             "FLAG J2" | Out-File "./tempflagfile.txt" -Append
         }
-        'J3' = [scriptblock]{
-            $csv = Import-Csv -Path "C:\Temp\aa.csv"
+        'J3' = [scriptblock] {
+            $csv = Import-Csv -Path "C:\Temp\Output_Daily_Reports_Powershell\NexthinkRawData.csv"
             for ($i = 1; $i -lt $csv.Count; $i++) {
                 $thisDate = $csv[$i]."Last seen"
                 $thatDate = $csv[($i - 1)]."Last seen"
@@ -61,17 +67,23 @@ function Invoke-Run {
                     [datetime]::ParseExact($thatDate, "yyyy-MM-dd'T'HH:mm:ss", $null)) {
                     $csv[$i]."Device name" | Out-File "./test.csv" -Append
                 }
+                if($i -gt 100){
+                    break
+                }
             }
             "FLAG J3" | Out-File "./tempflagfile.txt" -Append
         }
-        'J4' = [scriptblock]{
-            $csv = Import-Csv -Path "C:\Temp\aa.csv"
+        'J4' = [scriptblock] {
+            $csv = Import-Csv -Path "C:\Temp\Output_Daily_Reports_Powershell\NexthinkRawData.csv"
             for ($i = 1; $i -lt $csv.Count; $i++) {
                 $thisDate = $csv[$i]."Last seen"
                 $thatDate = $csv[($i - 1)]."Last seen"
                 if ([datetime]::ParseExact($thisDate, "yyyy-MM-dd'T'HH:mm:ss", $null) -gt
                     [datetime]::ParseExact($thatDate, "yyyy-MM-dd'T'HH:mm:ss", $null)) {
                     $csv[$i]."Device name" | Out-File "./test.csv" -Append
+                }
+                if($i -gt 100){
+                    break
                 }
             }
             "FLAG J4" | Out-File "./tempflagfile.txt" -Append
@@ -90,12 +102,8 @@ function Invoke-Run {
     lfjn
     ldk
     Write-Status -Message "End"  
-    $num = Get-Random -Minimum 0 -Maximum 2
-    if ($num -eq 1) {
-        Write-Status -Message "Success" -Final
-    }
-    else {
-        Write-Status -Message "Connection aborted" -Final
-    }
+
+    Write-Status -Message "Success" -Final
+
 
 }
