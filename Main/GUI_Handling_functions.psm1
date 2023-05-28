@@ -17,8 +17,9 @@ function Write-Status {
         $SharedArea.PowerShellInstances.OverallTimer.Stop()
         Write-Timer -Timer $($SharedArea.vars.Timers.Stopwatches.(($SharedArea.vars.Timers.Order[0])))
         Write-ConsumptionSummary
+        Write-PSInstanceErrors
         $SharedArea.vars.GUI.ShowExecutionStatus($Message)
-        $SharedArea.vars.GUI.UnlockInputs()
+        $SharedArea.vars.GUI.UnlockInputs()        
     }
     else {
         $MessageLength = $Message.Length
@@ -148,4 +149,7 @@ function Write-Timer {
         $SharedArea.vars.GUI.WriteTimer($Time)
     }
     catch {}
+}
+function Write-PSInstanceErrors {
+    
 }

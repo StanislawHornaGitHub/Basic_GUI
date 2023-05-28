@@ -341,6 +341,8 @@ class GUI {
                 }
             }
         }
+        # $PSInstanceErrors = $this.Runspaces.SharedArea.PowerShellInstances.'InvokeRun'.Streams.Error 
+        # $PSInstanceErrors = $PSInstanceErrors | Sort-Object { $_.Exception.Message } -Unique
     }
     StartProcessing() {
         [GUI_Config]::WriteLog("StartProcessing method", ([GUI_Config]::GUI_LogName))
@@ -517,7 +519,8 @@ class GUI {
                 'FinalStatusExtension'         = (([GUI_Config]::FinalStatusExtension).Replace("*", ""))
                 'RecourceConsumption'          = ([GUI_Config]::RecourceConsumption)
                 'ExecutionTimersName'          = ([GUI_Config]::ExecutionTimersName)
-                'RunRawLogName'                = ([GUI_Config]::RunErrors)
+                'RunErrors'                    = ([GUI_Config]::RunErrors)
+                'ErrorsToExclude'              = ([GUI_Config]::ErrorsToIgnore)
                 'ResourceConsumption_Interval' = ([GUI_config]::ResourceConsumption_Interval)
                 'ProgramName'                  = ([GUI_config]::ProgramName)
             }

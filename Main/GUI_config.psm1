@@ -30,11 +30,11 @@ class GUI_Config {
         }
     }
     static [hashtable] $Jobs = @{
-        'InvokeRun' = [scriptblock] {
+        'InvokeRun'    = [scriptblock] {
             Import-Module ./Main/GUI_Functions.psm1
             Invoke-Run -Portal $SharedArea.Vars.Portal -Credentials $SharedArea.Vars.Credentials -Engines $SharedArea.Vars.Engines
         }
-        'Measurement' = [scriptblock] {
+        'Measurement'  = [scriptblock] {
             Import-Module ./Main/GUI_Functions.psm1
             $ID = (Get-process | Where-Object {$_.MainWindowTitle -eq $SharedArea.Vars.EnvClass.ProgramName}).Id
             $CPUs = (Get-WMIObject Win32_ComputerSystem).NumberOfLogicalProcessors
@@ -48,15 +48,14 @@ class GUI_Config {
                 
             }while ($true)
         }
-        'OverallTimer' = [scriptblock]{
+        'OverallTimer' = [scriptblock] {
             Import-Module ./Main/GUI_Functions.psm1
             $OverallTimer = [System.Diagnostics.Stopwatch]::StartNew()
             $RefreshTime = 1000
-            $flag = $true
-            do{
+            do {
                 Write-Timer -Timer $OverallTimer
                 Start-Sleep -Milliseconds $RefreshTime
-            }while($true)
+            }while ($true)
         }
     }
     static [scriptblock] $InvokeConnection = {
@@ -212,50 +211,32 @@ class GUI_Config {
             }
         }
         $LogsArray = $LogsArray | Sort-Object { $_.Split("|")[0] }
-        $FlagForLogs = $false
-        $flagForErrors = $false
-        try {
-            $EndTime = (Get-ChildItem -Path ([GUI_Config]::StatusPath) -Filter ([GUI_Config]::FinalStatusExtension) -ErrorAction Stop | Select-Object -First 1).LastAccessTime.ToString('yyy-MM-dd HH\.mm\.ss')
-        }
-        catch {
-            $EndTime = $(([System.DateTime]::Now).ToString('yyy-MM-dd HH\.mm\.ss'))
-        }
-        Get-ChildItem -Path ([GUI_Config]::StatusPath) -Filter ([GUI_Config]::FinalStatusExtension) | Remove-Item -Force -Confirm:$false
+        $EndTime = $(([System.DateTime]::Now).ToString('yyy-MM-dd HH\.mm\.ss'))
+    
         $MergedLogName = "$EndTime $([GUI_Config]::ProgramName)"
         try {
-            $AdditionalData = Get-Content -Path "$([GUI_Config]::LogsPath)\$([GUI_Config]::ExecutionTimersName)" -ErrorAction Stop
+            $TimersInfo = Get-Content -Path "$([GUI_Config]::LogsPath)\$([GUI_Config]::ExecutionTimersName)" -ErrorAction Stop
             "Timers:" | Out-File -FilePath "$([GUI_Config]::MergedLogsPath)\$MergedLogName.log"
-            $AdditionalData | Out-File -FilePath "$([GUI_Config]::MergedLogsPath)\$MergedLogName.log" -Append
-            $FlagForLogs = $true
-            $flagForErrors = $true
+            $TimersInfo | Out-File -FilePath "$([GUI_Config]::MergedLogsPath)\$MergedLogName.log" -Append
+            "" | Out-File -FilePath "$([GUI_Config]::MergedLogsPath)\$MergedLogName.log" -Append
         }
         catch {}
         try {
-            $ResourceConsumption = Get-Content -Path "$([GUI_Config]::LogsPath)\$([GUI_Config]::RecourceConsumption)"
+            $ResourceConsumption = Get-Content -Path "$([GUI_Config]::LogsPath)\$([GUI_Config]::RecourceConsumption)" -ErrorAction Stop
             "Resource consumption:" | Out-File -FilePath "$([GUI_Config]::MergedLogsPath)\$MergedLogName.log" -Append
             $ResourceConsumption | Out-File -FilePath "$([GUI_Config]::MergedLogsPath)\$MergedLogName.log" -Append
+            "" | Out-File -FilePath "$([GUI_Config]::MergedLogsPath)\$MergedLogName.log" -Append
         }
         catch {}
-        if ($flagForErrors -eq $true) {
-            $Header = "`nErrors:"
-        }
-        else {
-            $Header = "Errors:"
-        }
         try {
-            $AdditionalData = Get-Content -Path "$([GUI_Config]::LogsPath)\$([GUI_Config]::RunErrors)" -ErrorAction Stop
-            $Header | Out-File -FilePath "$([GUI_Config]::MergedLogsPath)\$MergedLogName.log" -Append
-            $AdditionalData | Out-File -FilePath "$([GUI_Config]::MergedLogsPath)\$MergedLogName.log" -Append
+            $ErrorsData = Get-Content -Path "$([GUI_Config]::LogsPath)\$([GUI_Config]::RunErrors)" -ErrorAction Stop
+            "Errors:" | Out-File -FilePath "$([GUI_Config]::MergedLogsPath)\$MergedLogName.log" -Append
+            $ErrorsData | Out-File -FilePath "$([GUI_Config]::MergedLogsPath)\$MergedLogName.log" -Append
+            "" | Out-File -FilePath "$([GUI_Config]::MergedLogsPath)\$MergedLogName.log" -Append
         }
         catch {}
-        if ($FlagForLogs -eq $true) {
-            $Header = "`n`nLogs:"
-        }
-        else {
-            $Header = "Logs:"
-        }
         try {
-            $Header | Out-File -FilePath "$([GUI_Config]::MergedLogsPath)\$MergedLogName.log" -Append
+            "Logs:" | Out-File -FilePath "$([GUI_Config]::MergedLogsPath)\$MergedLogName.log" -Append
             $LogsArray | Out-File -FilePath "$([GUI_Config]::MergedLogsPath)\$MergedLogName.log" -Append
         }
         catch {}
@@ -296,6 +277,7 @@ class GUI_Config {
             }
             try {
                 New-Item -ItemType File -Path ([GUI_Config]::LockFile)
+               # $PID | Out-File -FilePath ([GUI_Config]::LockFile)
             }
             catch {
                 throw "Unknown error"
