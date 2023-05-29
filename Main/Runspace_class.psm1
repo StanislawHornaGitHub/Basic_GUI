@@ -6,6 +6,7 @@ class RunSpaceArea {
             'Scriptblocks'        = @{}
             'JobStatuses'         = @{}
             'Vars'                = @{}
+            'Errors'              = @{}
         })
 
     RunSpaceArea([hashtable]$Jobs) {
@@ -23,18 +24,19 @@ class RunSpaceArea {
     CreatePSinstances([hashtable]$Jobs) {
         foreach ($job in $Jobs.Keys) {  
             # Create PowerShell instance
-            If(-not ($this.SharedArea.PowerShellInstances.ContainsKey($job))){
+            If (-not ($this.SharedArea.PowerShellInstances.ContainsKey($job))) {
                 $this.SharedArea.PowerShellInstances.Add($job, ([powershell]::Create()))
                 $this.SharedArea.PowerShellInstances.$job.runspace = $this.SharedArea.RunSpaces.$job
                 $this.SharedArea.PowerShellInstances.$job.AddScript($jobs.$job)
                 $this.SharedArea.Scriptblocks.Add($job, $Jobs.$job)
-            }else{
+            }
+            else {
                 Write-Error -Message "$job already exists"
                 return
             }
         }  
     }
-    ReConstruct([hashtable]$Jobs){
+    ReConstruct([hashtable]$Jobs) {
         $this.DisposeAllJobs()
         $this.SharedArea.JobStatuses = @{}
         $this.SharedArea.vars = @{}
@@ -51,16 +53,19 @@ class RunSpaceArea {
         foreach ($job in $JobNames) {
             if (-not ($this.SharedArea.JobStatuses.ContainsKey($job))) {
                 $this.SharedArea.JobStatuses.Add($job, $this.SharedArea.PowerShellInstances.$job.BeginInvoke())
-            }else {
+            }
+            else {
                 $this.SharedArea.JobStatuses.$job = $this.SharedArea.PowerShellInstances.$job.BeginInvoke()
             }
         }
     }
     DisposeJob([array]$JobNames) {
         foreach ($job in $JobNames) {
-            $this.SharedArea.PowerShellInstances.$job.Dispose()
-            $this.SharedArea.PowershellInstances.Remove($job)
-            $this.SharedArea.JobStatuses.Remove($job)
+            if ($null -ne $this.SharedArea.PowerShellInstances.$job) {
+                $this.SharedArea.PowerShellInstances.$job.Dispose()
+                $this.SharedArea.PowershellInstances.Remove($job)
+                $this.SharedArea.JobStatuses.Remove($job)
+            }
         }
     }
     AddVariablesToSharedArea([hashtable]$InputVariables) {
@@ -73,21 +78,37 @@ class RunSpaceArea {
             }
         }
     }
-    WaitAnyPSInstance(){
+    WaitAnyPSInstance() {
         $flag = $true
         while ($flag) {
             $flag = $false
-            foreach($job in $this.SharedArea.JobStatuses.Keys){
-                if($this.SharedArea.JobStatuses.$job.IsCompleted -eq $false){
+            foreach ($job in $this.SharedArea.JobStatuses.Keys) {
+                if ($this.SharedArea.JobStatuses.$job.IsCompleted -eq $false) {
                     $flag = $true
                     break
                 }
             }
         }
     }
-    WaitPSInstance([String]$JobName){
+    WaitPSInstance([String]$JobName) {
         while ($this.SharedArea.JobStatuses.$JobName.IsCompleted -eq $false) {
             
+        }
+    }
+    SaveJobError([String]$JobName,[String]$timestamp, [string]$Message){
+        $this.SharedArea.Errors.Add($timestamp,@{
+            'Error' = $this.SharedArea.PowerShellInstances.$JobName.Streams.Error
+            'Message' = $Message
+        })
+    }
+    WriteJobErrorsToFile([String]$JobName,[String]$Path){
+        foreach($EndTime in $this.SharedArea.Errors.Keys){
+            $PSInstanceErrors = $this.SharedArea.Errors.$EndTime.'Error'
+            #$PSInstanceErrors = $PSInstanceErrors | Sort-Object {$_.Exception.Message} -Unique
+            $Message = $this.SharedArea.Errors.$EndTime.'Message'
+        
+            $PSInstanceErrors | Out-File -FilePath $Path -Append
+            "Execution status: $Message ; End time: $EndTime`n" | Out-File -FilePath $Path -Append
         }
     }
 }

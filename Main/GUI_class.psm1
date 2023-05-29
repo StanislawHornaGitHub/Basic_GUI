@@ -63,6 +63,8 @@ class GUI {
         $this.Form.Add_FormClosing({
                 $THIS_FORM.Runspaces.DisposeAllJobs()
                 [GUI_Config]::WriteLog("Form Close invoked", ([GUI_Config]::GUI_LogName))
+                $THIS_FORM.Runspaces.WriteJobErrorsToFile('InvokeRUN', "$([GUI_Config]::LogsPath)/$([GUI_Config]::RunErrors)")
+
                 [GUI_Config]::CloseInstance()
             })
         ######################################################################
@@ -341,6 +343,10 @@ class GUI {
                 }
             }
         }
+        $this.Runspaces.SharedArea.Errors.Add($($this.Runspaces.SharedArea.vars.LastExecution.EndTime),@{
+            'Error' = $($($this.Runspaces.SharedArea.PowerShellInstances.'InvokeRun').Streams.Error)
+            'Message' = $($this.Runspaces.SharedArea.vars.LastExecution.Message)
+        })
         # $PSInstanceErrors = $this.Runspaces.SharedArea.PowerShellInstances.'InvokeRun'.Streams.Error 
         # $PSInstanceErrors = $PSInstanceErrors | Sort-Object { $_.Exception.Message } -Unique
     }
