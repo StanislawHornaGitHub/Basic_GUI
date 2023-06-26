@@ -5,7 +5,7 @@
     
     Cmdlet: Write-Log -Message "Information will be saved in logs, but user will not be informed"
 #>
-using module '.\\Runspace_class.psm1'
+using module '.\Runspace_class.psm1'
 Import-Module '.\Main\GUI_Handling_functions.psm1'
 function Invoke-Run {
     param(
