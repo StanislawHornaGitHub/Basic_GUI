@@ -29,7 +29,7 @@ function Invoke-Run {
     Write-Status -Message "Parallel operations"
     $hashParallel = @{
         'J1' = [scriptblock] {
-            $csv = Import-Csv -Path "C:\Temp\Output_Daily_Reports_Powershell\NexthinkRawData.csv"
+            $csv = Import-Csv -Path "C:\Temp\aa.csv"
             for ($i = 1; $i -lt $csv.Count; $i++) {
                 $thisDate = $csv[$i]."Last seen"
                 $thatDate = $csv[($i - 1)]."Last seen"
@@ -44,7 +44,7 @@ function Invoke-Run {
             "FLAG J1" | Out-File "./tempflagfile.txt" -Append
         }
         'J2' = [scriptblock] {
-            $csv = Import-Csv -Path "C:\Temp\Output_Daily_Reports_Powershell\NexthinkRawData.csv"
+            $csv = Import-Csv -Path "C:\Temp\aa.csv"
             for ($i = 1; $i -lt $csv.Count; $i++) {
                 $thisDate = $csv[$i]."Last seen"
                 $thatDate = $csv[($i - 1)]."Last seen"
@@ -59,7 +59,7 @@ function Invoke-Run {
             "FLAG J2" | Out-File "./tempflagfile.txt" -Append
         }
         'J3' = [scriptblock] {
-            $csv = Import-Csv -Path "C:\Temp\Output_Daily_Reports_Powershell\NexthinkRawData.csv"
+            $csv = Import-Csv -Path "C:\Temp\aa.csv"
             for ($i = 1; $i -lt $csv.Count; $i++) {
                 $thisDate = $csv[$i]."Last seen"
                 $thatDate = $csv[($i - 1)]."Last seen"
@@ -74,7 +74,7 @@ function Invoke-Run {
             "FLAG J3" | Out-File "./tempflagfile.txt" -Append
         }
         'J4' = [scriptblock] {
-            $csv = Import-Csv -Path "C:\Temp\Output_Daily_Reports_Powershell\NexthinkRawData.csv"
+            $csv = Import-Csv -Path "C:\Temp\aa.csv"
             for ($i = 1; $i -lt $csv.Count; $i++) {
                 $thisDate = $csv[$i]."Last seen"
                 $thatDate = $csv[($i - 1)]."Last seen"

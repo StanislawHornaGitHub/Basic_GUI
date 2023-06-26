@@ -1,3 +1,4 @@
 /Main/Status/*
 /Main/Log/*
 /Logs/*
+*.code-workspace

@@ -343,10 +343,10 @@ class GUI {
                 }
             }
         }
-        $this.Runspaces.SharedArea.Errors.Add($($this.Runspaces.SharedArea.vars.LastExecution.EndTime),@{
-            'Error' = $($($this.Runspaces.SharedArea.PowerShellInstances.'InvokeRun').Streams.Error)
-            'Message' = $($this.Runspaces.SharedArea.vars.LastExecution.Message)
-        })
+        # $this.Runspaces.SharedArea.Errors.Add($($this.Runspaces.SharedArea.vars.LastExecution.EndTime),@{
+        #     'Error' = $($($this.Runspaces.SharedArea.PowerShellInstances.'InvokeRun').Streams.Error)
+        #     'Message' = $($this.Runspaces.SharedArea.vars.LastExecution.Message)
+        # })
         # $PSInstanceErrors = $this.Runspaces.SharedArea.PowerShellInstances.'InvokeRun'.Streams.Error 
         # $PSInstanceErrors = $PSInstanceErrors | Sort-Object { $_.Exception.Message } -Unique
     }
@@ -532,6 +532,7 @@ class GUI {
             }
         }
         $this.Runspaces.AddVariablesToSharedArea($InputVariables)
+        [GC]::Collect()
         $this.Runspaces.StartAllJobs()
     }
 }
