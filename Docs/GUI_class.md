@@ -14,7 +14,7 @@ Basically GUI Form has 2 modes:
 - Environment <- Environment selected in [GUI_EnvironmentalSelection.psm1](/Docs/GUI_EnvironmentSelection.md)
 - Servers <- List of destination components also related to [GUI_EnvironmentalSelection.psm1](/Docs/GUI_EnvironmentSelection.md)
 - Form  <- Main form object for GUI window
-- GUI_Components <- Hashtable with Hierarchy and relations of all GUI components (labels, boxes, buttons) implemented in GUI
+- [GUI_Components](/Docs/GUI_Components.md) <- Hashtable with Hierarchy and relations of all GUI components (labels, boxes, buttons) implemented in GUI
 - Runspace <- Object of class defined in [Runspace_class.psm1](/Docs/Runspace_class.md)
 
 ### Methods:
