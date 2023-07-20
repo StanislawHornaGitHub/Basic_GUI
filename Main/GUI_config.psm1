@@ -32,7 +32,7 @@ class GUI_Config {
     static [hashtable] $Jobs = @{
         'InvokeRun'    = [scriptblock] {
             Import-Module ./Main/GUI_Functions.psm1
-            Invoke-Run -Portal $SharedArea.Vars.Portal -Credentials $SharedArea.Vars.Credentials -Engines $SharedArea.Vars.Engines
+            Invoke-Run -Portal $SharedArea.Vars.Portal -Credentials $SharedArea.Vars.Credentials -Servers $SharedArea.Vars.Servers
         }
         'Measurement'  = [scriptblock] {
             Import-Module ./Main/GUI_Functions.psm1
@@ -63,16 +63,16 @@ class GUI_Config {
             [String]$Portal,
             [PSCredential]$Credentials
         )
-        [GUI_Config]::WriteLog("Trying to retrieve engine list", $([GUI_Config]::Connection_LogName))
+        [GUI_Config]::WriteLog("Trying to retrieve server list", $([GUI_Config]::Connection_LogName))
         $num = Get-Random -Minimum 0 -Maximum 2
         $ResultHash = @{}
         if ($num -eq 1) {
             $ResultHash.Add("Connected", $true)
-            $engines = @{'engine1' = 'aaaaa'
-                'engine2'          = 'bbbb'
+            $engines = @{'Server-1' = 'aaaaa'
+                'Server-2'          = 'bbbb'
             }
-            [GUI_Config]::WriteLog("Engine list ready", $([GUI_Config]::Connection_LogName)) 
-            $ResultHash.Add('Engines', $engines)
+            [GUI_Config]::WriteLog("Server list ready", $([GUI_Config]::Connection_LogName)) 
+            $ResultHash.Add('Servers', $engines)
         }
         else {
             $ResultHash.Add("Connected", $false)

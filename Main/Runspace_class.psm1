@@ -106,7 +106,6 @@ class RunSpaceArea {
             $PSInstanceErrors = $this.SharedArea.Errors.$EndTime.'Error'
             #$PSInstanceErrors = $PSInstanceErrors | Sort-Object {$_.Exception.Message} -Unique
             $Message = $this.SharedArea.Errors.$EndTime.'Message'
-        
             $PSInstanceErrors | Out-File -FilePath $Path -Append
             "Execution status: $Message ; End time: $EndTime`n" | Out-File -FilePath $Path -Append
         }

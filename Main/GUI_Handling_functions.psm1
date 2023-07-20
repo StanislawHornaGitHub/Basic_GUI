@@ -151,6 +151,5 @@ function Write-Timer {
     catch {}
 }
 function Write-PSInstanceErrors {
-
-   # $SharedArea.PowerShellInstances.'InvokeRun'.Streams.Error | Out-File -FilePath ./test.txt
+# $SharedArea.PowerShellInstances.'InvokeRun'.Streams.Error | Out-File -FilePath ./test.txt
 }

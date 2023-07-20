@@ -4,7 +4,7 @@ using module './Main/Runspace_class.psm1'
 class GUI {
     # Variables
     $Environment
-    $Engines
+    $Servers
     # GUI
     $Form
     $GUI_Components = @{
@@ -77,7 +77,7 @@ class GUI {
         $this.GUI_Components.'Small_GUI'.'Label'.'Title'.height = 20
         $this.GUI_Components.'Small_GUI'.'Label'.'Title'.Font = New-Object System.Drawing.Font('Microsoft Sans Serif', 12, [System.Drawing.FontStyle]::Bold)
 
-        $this.NewLabel([ComponentType]"Small_GUI", "Portal", "Portal FQDN:", 20, 30)
+        $this.NewLabel([ComponentType]"Small_GUI", "Portal", "Portal:", 20, 30)
 
         $this.NewLabel([ComponentType]"Small_GUI", "Login", "Login:", 20, 60)
 
@@ -472,12 +472,12 @@ class GUI {
         if ($Result.'Connected' -eq $true) {
             [GUI_Config]::WriteLog("Connect execution status: Connected ; $Portal", ([GUI_Config]::GUI_LogName))
             $this.BigGUI()
-            $this.Engines = [GUI_Environment]::GUI_EnvironmentSelection($Result.'Engines', $Portal)
+            $this.Servers = [GUI_Environment]::GUI_EnvironmentSelection($Result.'Servers', $Portal)
         }
         else {
             [GUI_Config]::WriteLog("Connect execution status: $($Result.'ErrorMessage')", ([GUI_Config]::GUI_LogName))
             $this.SmallGUIwithConnectionStatus(($Result.'ErrorMessage' + " "))
-            $this.Engines = $null
+            $this.Servers = $null
         }
     }
     InvokeRun() {
@@ -502,7 +502,7 @@ class GUI {
             'Timers'                 = @{}
             'Portal'                 = $Portal
             'Credentials'            = $Credentials
-            'Engines'                = $this.Engines
+            'Servers'                = $this.Servers
             'GUI'                    = $this 
             'LastExecution'          = @{
                 'Message' = ""

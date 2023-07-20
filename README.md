@@ -1,8 +1,16 @@
-# Introduction 
+### Powershell GUI
+This is universal Graphical Interface to run Powershell script that requires 3 inputs form the user:
+        
+    Portal
+    Login
+    Password
+Whole project was designed to be easily adjustable for any script, without a need to bother anything related to the designing or modifying the GUI itself. 
 
-Invoke-PS2EXE -inputFile '.\Powershell GUI.ps1' -outputFile '.\Powershell GUI.exe' -noConsole -iconFile .\Icon\new-icon.ico -x64 -company "Stanislaw Horna" -title "Executable to run gui interface" -version "1.0.0.0" -copyright "Stanislaw Horna" -product "GUI runner"
-# Getting Started
-TODO: Guide users through getting your code up and running on their own system. In this section you can talk about:
-1.	Save errors from runspace to file (Look at UnlockInputs method)
-2.  Save process ID to lock file
+It also have own .exe file which is used to run the script, but you do not have to recreate new .exe when you are making changes to the tasks which are meant to be done.
+
+# Screenshots
+<p float="left">
+    <img src="/Screenshots/Initial_View.png" width="400" />
+    <img src="/Screenshots/Initial_View_Password_Showen.png" width="400" />
+</p>
 

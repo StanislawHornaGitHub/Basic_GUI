@@ -1,10 +1,10 @@
 using module './Main/GUI_config.psm1'
 class GUI_Environment {
     static [hashtable] $PortalsToFilter = @{
-        'MoJ' = @{
-            'FITS' = @('engine-1')
-            'MoJo' = @('engine-10')
-            'All'  = @('engine-1', 'engine-10')
+        'TestTenant' = @{
+            'Pool-A' = @('Server-1')
+            'Pool-B' = @('Server-2')
+            'All'  = @('Server-1', 'Server-2')
         }
     }
 
@@ -46,25 +46,25 @@ class GUI_Environment {
         #------------------------- Buttons Section --------------------------#
         ######################################################################
 
-        $ButtonFITS = New-Object System.Windows.Forms.Button
-        $ButtonFITS.Location = New-Object System.Drawing.Point(55, 50)
-        $ButtonFITS.Size = New-Object System.Drawing.Size(80, 30)
-        $ButtonFITS.Text = 'FITS EUCS'
-        $ButtonFITS.Add_Click({
+        $ButtonA = New-Object System.Windows.Forms.Button
+        $ButtonA.Location = New-Object System.Drawing.Point(55, 50)
+        $ButtonA.Size = New-Object System.Drawing.Size(80, 30)
+        $ButtonA.Text = 'Pool-A'
+        $ButtonA.Add_Click({
                 $EnvSelect.Add_FormClosing({
-                        $Global:Selection = "FITS" })
+                        $Global:Selection = "Pool-A" })
                 $EnvSelect.Close() })
-        $EnvSelect.Controls.Add($ButtonFITS)
+        $EnvSelect.Controls.Add($ButtonA)
 
-        $ButtonMoJo = New-Object System.Windows.Forms.Button
-        $ButtonMoJo.Location = New-Object System.Drawing.Point(150, 50)
-        $ButtonMoJo.Size = New-Object System.Drawing.Size(80, 30)
-        $ButtonMoJo.Text = 'MoJo'
-        $ButtonMoJo.Add_Click({
+        $ButtonB = New-Object System.Windows.Forms.Button
+        $ButtonB.Location = New-Object System.Drawing.Point(150, 50)
+        $ButtonB.Size = New-Object System.Drawing.Size(80, 30)
+        $ButtonB.Text = 'Pool-B'
+        $ButtonB.Add_Click({
                 $EnvSelect.Add_FormClosing({
-                        $Global:Selection = "MoJo" })
+                        $Global:Selection = "Pool-B" })
                 $EnvSelect.Close() })
-        $EnvSelect.Controls.Add($ButtonMoJo)
+        $EnvSelect.Controls.Add($ButtonB)
 
         $ButtonAll = New-Object System.Windows.Forms.Button
         $ButtonAll.Location = New-Object System.Drawing.Point(250, 50)
