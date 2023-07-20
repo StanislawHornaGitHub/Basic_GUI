@@ -19,17 +19,14 @@ function Invoke-Run {
     [System.DateTime]::ParseExact("-", "yyyy-MM-dd'T'HH:mm:ss", $null) 
     [System.DateTime]::ParseExact("-", "yyyy-MM-dd'T'HH:mm:ss", $null) 
     [System.DateTime]::ParseExact("-", "yyyy-MM-dd'T'HH:mm:ss", $null) 
-    Write-Status -Message "Microsoft Edge"  
+    Write-Status -Message "First status"  
     Start-Sleep -Milliseconds $delay
-    Write-Status -Message "Teams"  
-
-    Start-Sleep -Milliseconds $delay
-    Write-Status -Message "Chrome"  
+    Write-Status -Message "Second status"  
     Start-Sleep -Milliseconds $delay
     Write-Status -Message "Parallel operations"
     $hashParallel = @{
         'J1' = [scriptblock] {
-            $csv = Import-Csv -Path "C:\Temp\aa.csv"
+            $csv = Import-Csv -Path ".\Test environment\Test_File.csv"
             for ($i = 1; $i -lt $csv.Count; $i++) {
                 $thisDate = $csv[$i]."Last seen"
                 $thatDate = $csv[($i - 1)]."Last seen"
@@ -41,10 +38,10 @@ function Invoke-Run {
                     break
                 }
             }
-            "FLAG J1" | Out-File "./tempflagfile.txt" -Append
+            "FLAG J1" | Out-File "./Test environment/tempflagfile.txt" -Append
         }
         'J2' = [scriptblock] {
-            $csv = Import-Csv -Path "C:\Temp\aa.csv"
+            $csv = Import-Csv -Path ".\Test environment\Test_File.csv"
             for ($i = 1; $i -lt $csv.Count; $i++) {
                 $thisDate = $csv[$i]."Last seen"
                 $thatDate = $csv[($i - 1)]."Last seen"
@@ -56,10 +53,10 @@ function Invoke-Run {
                     break
                 }
             }
-            "FLAG J2" | Out-File "./tempflagfile.txt" -Append
+            "FLAG J2" | Out-File "./Test environment/tempflagfile.txt" -Append
         }
         'J3' = [scriptblock] {
-            $csv = Import-Csv -Path "C:\Temp\aa.csv"
+            $csv = Import-Csv -Path ".\Test environment\Test_File.csv"
             for ($i = 1; $i -lt $csv.Count; $i++) {
                 $thisDate = $csv[$i]."Last seen"
                 $thatDate = $csv[($i - 1)]."Last seen"
@@ -71,10 +68,10 @@ function Invoke-Run {
                     break
                 }
             }
-            "FLAG J3" | Out-File "./tempflagfile.txt" -Append
+            "FLAG J3" | Out-File "./Test environment/tempflagfile.txt" -Append
         }
         'J4' = [scriptblock] {
-            $csv = Import-Csv -Path "C:\Temp\aa.csv"
+            $csv = Import-Csv -Path ".\Test environment\Test_File.csv"
             for ($i = 1; $i -lt $csv.Count; $i++) {
                 $thisDate = $csv[$i]."Last seen"
                 $thatDate = $csv[($i - 1)]."Last seen"
@@ -86,7 +83,7 @@ function Invoke-Run {
                     break
                 }
             }
-            "FLAG J4" | Out-File "./tempflagfile.txt" -Append
+            "FLAG J4" | Out-File "./Test environment/tempflagfile.txt" -Append
         }
     }
     try {
