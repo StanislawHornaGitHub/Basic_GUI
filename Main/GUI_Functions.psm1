@@ -15,10 +15,6 @@ function Invoke-Run {
     )
     
     $delay = 2000
-    Get-Process excel
-    [System.DateTime]::ParseExact("-", "yyyy-MM-dd'T'HH:mm:ss", $null) 
-    [System.DateTime]::ParseExact("-", "yyyy-MM-dd'T'HH:mm:ss", $null) 
-    [System.DateTime]::ParseExact("-", "yyyy-MM-dd'T'HH:mm:ss", $null) 
     Write-Status -Message "First status"  
     Start-Sleep -Milliseconds $delay
     Write-Status -Message "Second status"  
@@ -95,12 +91,5 @@ function Invoke-Run {
         write-catch -Message $_ -throwRUN
     }
 
-
-    lfjn
-    ldk
-    Write-Status -Message "End"  
-
     Write-Status -Message "Success" -Final
-
-
 }
