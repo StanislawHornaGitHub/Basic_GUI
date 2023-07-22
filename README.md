@@ -1,6 +1,6 @@
 ### [Powershell GUI](#screenshots)
-This is universal Graphical Interface to run Powershell script that requires 3 or less inputs from the user. 
-Whole project was designed to be easily adjustable for any script, without a need to bother anything related to designing or modifying the GUI itself.
+This is universal Graphical Interface to implement any script written to work with CLI only.
+Whole project was designed to be easily adjustable for any script, without a need to change anything related to designing or modifying the GUI itself.
 
 The goal was to build easy to understand environment for the user (GUI) with some powerfull integrated features such like:
 -
