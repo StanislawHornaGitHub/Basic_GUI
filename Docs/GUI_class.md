@@ -14,8 +14,39 @@ Basically GUI Form has 2 modes:
 - Environment <- Environment selected in [GUI_EnvironmentalSelection.psm1](/Docs/GUI_EnvironmentSelection.md)
 - Servers <- List of destination components also related to [GUI_EnvironmentalSelection.psm1](/Docs/GUI_EnvironmentSelection.md)
 - Form  <- Main form object for GUI window
-- [GUI_Components](/Docs/GUI_Components.md) <- Hashtable with Hierarchy and relations of all GUI components (labels, boxes, buttons) implemented in GUI
 - Runspace <- Object of class defined in [Runspace_class.psm1](/Docs/Runspace_class.md)
+- [GUI_Components](/Docs/GUI_Components.md) <- Hashtable with Hierarchy and relations of all GUI components (labels, boxes, buttons) implemented in GUI
+```mermaid
+classDiagram
+  GUI_Components <|-- Small_GUI
+  GUI_Components <|-- Big_GUI
+  GUI_Components <|-- Manual
+  GUI_Components <|-- Measurement
+  GUI_Components : Small_GUI
+  GUI_Components : Big_GUI
+  GUI_Components : Manual
+  GUI_Components : Measurement
+  Small_GUI : Label
+  Small_GUI : Box
+  Small_GUI : Checkbox
+  Small_GUI : Button
+  Small_GUI : ProgressBar
+  Big_GUI : Label
+  Big_GUI : Box
+  Big_GUI : Checkbox
+  Big_GUI : Button
+  Big_GUI : ProgressBar
+  Manual : Label
+  Manual : Box
+  Manual : Checkbox
+  Manual : Button
+  Manual : ProgressBar
+  Measurement : Label
+  Measurement : Box
+  Measurement : Checkbox
+  Measurement : Button
+  Measurement : ProgressBar
+```
 
 ### Methods:
 - GUI <- initial constructor, defines all objects based on the information covered in [GUI_config.psm1](/Docs/GUI_config.md)
